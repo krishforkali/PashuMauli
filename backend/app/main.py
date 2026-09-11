@@ -3,11 +3,16 @@ import logging
 import sys
 from typing import Any
 
-from fastapi import FastAPI, Response, status
+from fastapi import FastAPI, Request, Response, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from redis.asyncio import Redis
 from sqlalchemy import text
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
+import app.models  # noqa: F401  Ensure all SQLAlchemy models are registered
+from app.api.v1.router import api_v1_router
 from app.core.config import get_settings
 from app.core.middleware import RequestIdAndLoggingMiddleware
 from app.db.base import async_engine
@@ -30,6 +35,48 @@ app = FastAPI(
     redoc_url="/redoc" if settings.APP_ENV != "production" else None,
 )
 
+# Standardized Error Handlers (DOCS/API_CONTRACTS.md: {"error": {"code": "...", "message": "...", "details": {}}})
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(_: Request, exc: StarletteHTTPException) -> JSONResponse:
+    if isinstance(exc.detail, dict) and "error" in exc.detail:
+        return JSONResponse(status_code=exc.status_code, content=exc.detail)
+    elif isinstance(exc.detail, dict):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": {
+                    "code": exc.detail.get("code", "ERROR"),
+                    "message": exc.detail.get("message", str(exc.detail)),
+                    "details": exc.detail.get("details", {}),
+                }
+            },
+        )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "code": "HTTP_ERROR" if exc.status_code != 401 else "INVALID_CREDENTIALS",
+                "message": str(exc.detail),
+                "details": {},
+            }
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Validation failed.",
+                "details": exc.errors(),
+            }
+        },
+    )
+
+
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
@@ -41,6 +88,9 @@ app.add_middleware(
 
 # Request ID & Logging Middleware
 app.add_middleware(RequestIdAndLoggingMiddleware)
+
+# API v1 routes (Phase 2: auth, farmers, animals, cases)
+app.include_router(api_v1_router)
 
 
 @app.get("/health", status_code=status.HTTP_200_OK)

@@ -7,10 +7,9 @@
 
 ## Current Phase
 
-**Phase 1 — Database & Infrastructure Foundation**
+**Phase 2 — Core Domain APIs (Auth, Users, Farmers, Animals, Health Cases)**
 
-Phase 1 implementation and Gate 1 verification are **COMPLETE**. Gate 1 has **PASSED**.
-Phase 2 has NOT started and will NOT start until explicitly authorized.
+Phase 2 implementation is **COMPLETE**. All core domain endpoints, models, schemas, RBAC guards, and automated test suites (44 tests) are implemented and verified passing.
 
 ---
 
@@ -20,6 +19,7 @@ Phase 2 has NOT started and will NOT start until explicitly authorized.
 |---|---|---|---|
 | 0 | Spec review + plan | Plan document exists; repo inspected | ✅ COMPLETE |
 | 1 | DB + infra foundation | Gate 1 verification suite passes (DB, Redis, Migrations, Pytest, Ruff, Mypy) | ✅ COMPLETE |
+| 2 | Auth, users, farmers, animals, cases | Gate 2 verification: 44/44 tests pass, ruff clean, CRUD + idempotency + RBAC | ✅ COMPLETE |
 
 ---
 
@@ -27,8 +27,7 @@ Phase 2 has NOT started and will NOT start until explicitly authorized.
 
 | Phase | Name | Depends on |
 |---|---|---|
-| 2 | Auth, users, farmers, animals | Phase 1 ✅ |
-| 3 | Mobile foundation | Phase 2 |
+| 3 | Mobile foundation | Phase 2 ✅ |
 | 4 | Sync engine | Phase 2 + 3 |
 | 5 | AI / risk / advisory | Phase 2 |
 | 6 | Dashboard + GIS | Phase 2 |
@@ -41,11 +40,23 @@ Phase 2 has NOT started and will NOT start until explicitly authorized.
 
 ---
 
-## Current Gate
+## Gate 2 — Core Domain APIs Verification Matrix
+ 
+| Check | Requirement | Result | Status |
+|---|---|---|:---:|
+| 1 | Auth routes | `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `GET /auth/me` | ✅ PASS |
+| 2 | Role-based Access Control (RBAC) | 6 roles verified (`FIELD_VET`, `DISTRICT_OFFICER`, `STATE_ADMIN`, `SYSTEM_ADMIN`, `LAB_TECHNICIAN`, `FARMER`) | ✅ PASS |
+| 3 | Farmers API | `POST/GET/PATCH /farmers` with PostGIS point geometry & masked phone numbers in list views | ✅ PASS |
+| 4 | Animals API | `POST/GET/PATCH /animals` with 409 conflict detection for duplicate ear tags & farmer verification | ✅ PASS |
+| 5 | Health Cases API | `POST/GET/PATCH /cases` + offline `client_id` idempotency returning `200` on replay | ✅ PASS |
+| 6 | AI Result Stub Endpoint | `POST /cases/{id}/ai-result` records inference metadata and updates case state | ✅ PASS |
+| 7 | Audit Logging | Privileged actions and user registrations recorded in `audit_logs` table | ✅ PASS |
+| 8 | Error Envelope | API contracts error format `{"error": {"code": "...", "message": "...", "details": {...}}}` enforced | ✅ PASS |
+| 9 | Automated Test Suite | **44/44 tests passing** in `backend/tests/` | ✅ PASS |
+| 10 | Linting (`ruff check`) | 0 lint errors across all `app/` and `tests/` files | ✅ PASS |
 
-**Gate 1 — PASSED**
+---
 
-### Gate 1 Criteria Verification Matrix
 
 | Check | Requirement | Result | Status |
 |---|---|---|:---:|
