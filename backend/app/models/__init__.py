@@ -1,0 +1,1 @@
+"""PashuMauli models module."""

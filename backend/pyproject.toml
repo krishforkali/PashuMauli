@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pashumauli-backend"
+version = "0.1.0"
+description = "PashuMauli Livestock Health Surveillance Platform Backend"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110.0,<1.0.0",
+    "uvicorn[standard]>=0.29.0,<1.0.0",
+    "sqlalchemy[asyncio]>=2.0.29,<3.0.0",
+    "alembic>=1.13.1,<2.0.0",
+    "asyncpg>=0.30.0,<1.0.0",
+    "psycopg2-binary>=2.9.10,<3.0.0",
+    "geoalchemy2>=0.14.7,<1.0.0",
+    "shapely>=2.0.7,<3.0.0",
+    "pydantic>=2.9.2,<3.0.0",
+    "pydantic-settings>=2.5.2,<3.0.0",
+    "redis>=5.0.3,<6.0.0",
+    "structlog>=24.1.0,<25.0.0",
+    "python-json-logger>=2.0.7,<3.0.0",
+    "httpx>=0.27.0,<1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.1.1,<9.0.0",
+    "pytest-asyncio>=0.23.6,<1.0.0",
+    "ruff>=0.3.4,<1.0.0",
+    "mypy>=1.9.0,<2.0.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+follow_imports = "silent"
+exclude = [
+    "\\.venv",
+    "alembic",
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
