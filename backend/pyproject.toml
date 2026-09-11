@@ -50,6 +50,8 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 ignore_missing_imports = true
 follow_imports = "silent"
+mypy_path = "."
+explicit_package_bases = true
 exclude = [
     "\\.venv",
     "alembic",

@@ -5,6 +5,8 @@ Teardown uses:
 2. Async engine disposal between tests so connection pools don't leak across event loops.
 """
 import os
+from collections.abc import AsyncGenerator, Generator
+from typing import Any
 
 import psycopg2
 import pytest
@@ -13,7 +15,7 @@ import pytest_asyncio
 from app.db.base import async_engine
 
 
-def _sync_db():
+def _sync_db() -> Any:
     """Return a psycopg2 connection using the same DSN as the backend."""
     dsn = os.environ.get(
         "DATABASE_URL",
@@ -27,14 +29,14 @@ def _sync_db():
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def cleanup_async_engine():
+async def cleanup_async_engine() -> AsyncGenerator[None, None]:
     """Dispose of the async engine pool after each async test to prevent loop conflicts."""
     yield
     await async_engine.dispose()
 
 
 @pytest.fixture(autouse=True)
-def cleanup_test_data():
+def cleanup_test_data() -> Generator[None, None, None]:
     """Delete test-scoped rows after each test using a sync connection in strict FK order."""
     yield
     conn = _sync_db()

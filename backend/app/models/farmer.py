@@ -3,6 +3,7 @@ import uuid
 from datetime import UTC, datetime
 
 from geoalchemy2 import Geography
+from geoalchemy2.elements import WKBElement
 from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -33,7 +34,7 @@ class Farmer(Base):
         ForeignKey("villages.id", ondelete="SET NULL"),
         nullable=True,
     )
-    location: Mapped[Geography | None] = mapped_column(
+    location: Mapped[WKBElement | None] = mapped_column(
         Geography("POINT", srid=4326), nullable=True
     )
     address_text: Mapped[str | None] = mapped_column(Text(), nullable=True)

@@ -1,5 +1,7 @@
 """Phase 2 health cases API tests — includes idempotency and AI result stub."""
 import uuid
+from collections.abc import AsyncGenerator
+from typing import cast
 
 import pytest
 import pytest_asyncio
@@ -20,7 +22,7 @@ async def _register_and_login(client: AsyncClient, phone: str) -> str:
         "/api/v1/auth/login",
         json={"phone": phone, "password": "casepass99"},
     )
-    return resp.json()["access_token"]
+    return cast(str, resp.json()["access_token"])
 
 
 async def _create_farmer(client: AsyncClient, token: str, phone: str) -> str:
@@ -29,13 +31,14 @@ async def _create_farmer(client: AsyncClient, token: str, phone: str) -> str:
         headers={"Authorization": f"Bearer {token}"},
         json={"name": "Case Farmer", "phone": phone},
     )
-    return resp.json()["id"]
+    return cast(str, resp.json()["id"])
 
 
 @pytest_asyncio.fixture
-async def client():
+async def client() -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
+        transport=ASGITransport(app=app),  # type: ignore[arg-type]
+        base_url="http://test",
     ) as ac:
         yield ac
 
@@ -50,13 +53,11 @@ async def farmer_id(client: AsyncClient, auth_token: str) -> str:
     return await _create_farmer(client, auth_token, "07030000001")
 
 
-
-
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
 
-async def test_create_case_basic(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_create_case_basic(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     resp = await client.post(
         "/api/v1/cases",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -74,7 +75,7 @@ async def test_create_case_basic(client: AsyncClient, auth_token: str, farmer_id
     assert "fever" in data["symptoms"]
 
 
-async def test_create_case_idempotent_client_id(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_create_case_idempotent_client_id(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     """AT-04 stub: same client_id submitted twice returns existing case (HTTP 200)."""
     cid = str(uuid.uuid4())
     payload = {
@@ -99,7 +100,7 @@ async def test_create_case_idempotent_client_id(client: AsyncClient, auth_token:
     assert r1.json()["id"] == r2.json()["id"]  # same record returned
 
 
-async def test_create_case_invalid_source(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_create_case_invalid_source(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     resp = await client.post(
         "/api/v1/cases",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -108,7 +109,7 @@ async def test_create_case_invalid_source(client: AsyncClient, auth_token: str, 
     assert resp.status_code == 422
 
 
-async def test_list_cases(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_list_cases(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     await client.post(
         "/api/v1/cases",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -124,7 +125,7 @@ async def test_list_cases(client: AsyncClient, auth_token: str, farmer_id: str):
     assert data["total"] >= 1
 
 
-async def test_list_cases_filter_by_source(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_list_cases_filter_by_source(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     await client.post(
         "/api/v1/cases",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -139,7 +140,7 @@ async def test_list_cases_filter_by_source(client: AsyncClient, auth_token: str,
         assert item["source"] == "MOBILE"
 
 
-async def test_get_case(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_get_case(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     create = await client.post(
         "/api/v1/cases",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -154,7 +155,7 @@ async def test_get_case(client: AsyncClient, auth_token: str, farmer_id: str):
     assert resp.json()["id"] == cid
 
 
-async def test_patch_case_status(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_patch_case_status(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     create = await client.post(
         "/api/v1/cases",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -170,7 +171,7 @@ async def test_patch_case_status(client: AsyncClient, auth_token: str, farmer_id
     assert resp.json()["status"] == "IN_PROGRESS"
 
 
-async def test_patch_case_invalid_status(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_patch_case_invalid_status(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     create = await client.post(
         "/api/v1/cases",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -185,7 +186,7 @@ async def test_patch_case_invalid_status(client: AsyncClient, auth_token: str, f
     assert resp.status_code == 422
 
 
-async def test_attach_ai_result_stub(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_attach_ai_result_stub(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     """Attaching AI result (Phase 2 stub) stores result and updates case.ai_model_version."""
     create = await client.post(
         "/api/v1/cases",
@@ -222,7 +223,7 @@ async def test_attach_ai_result_stub(client: AsyncClient, auth_token: str, farme
     assert case_resp.json()["suspected_disease"] == "TestDisease"
 
 
-async def test_get_nonexistent_case(client: AsyncClient, auth_token: str):
+async def test_get_nonexistent_case(client: AsyncClient, auth_token: str) -> None:
     resp = await client.get(
         "/api/v1/cases/00000000-0000-0000-0000-000000000000",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -235,7 +236,7 @@ async def test_get_nonexistent_case(client: AsyncClient, auth_token: str):
 # ---------------------------------------------------------------------------
 
 
-async def test_audit_log_on_login(client: AsyncClient, auth_token: str):
+async def test_audit_log_on_login(client: AsyncClient, auth_token: str) -> None:
     """Verify an audit_log entry was created for the login that produced auth_token."""
     conn = _sync_db()
     try:

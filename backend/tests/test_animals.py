@@ -1,4 +1,7 @@
 """Phase 2 animals API tests."""
+from collections.abc import AsyncGenerator
+from typing import cast
+
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -17,7 +20,7 @@ async def _register_and_login(client: AsyncClient, phone: str) -> str:
         "/api/v1/auth/login",
         json={"phone": phone, "password": "vetpass123"},
     )
-    return resp.json()["access_token"]
+    return cast(str, resp.json()["access_token"])
 
 
 async def _create_farmer(client: AsyncClient, token: str, phone: str = "07020000001") -> str:
@@ -26,13 +29,14 @@ async def _create_farmer(client: AsyncClient, token: str, phone: str = "07020000
         headers={"Authorization": f"Bearer {token}"},
         json={"name": "Animal Owner", "phone": phone},
     )
-    return resp.json()["id"]
+    return cast(str, resp.json()["id"])
 
 
 @pytest_asyncio.fixture
-async def client():
+async def client() -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
+        transport=ASGITransport(app=app),  # type: ignore[arg-type]
+        base_url="http://test",
     ) as ac:
         yield ac
 
@@ -47,13 +51,11 @@ async def farmer_id(client: AsyncClient, auth_token: str) -> str:
     return await _create_farmer(client, auth_token)
 
 
-
-
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
 
-async def test_create_animal(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_create_animal(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     resp = await client.post(
         "/api/v1/animals",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -72,7 +74,7 @@ async def test_create_animal(client: AsyncClient, auth_token: str, farmer_id: st
     assert data["status"] == "ACTIVE"
 
 
-async def test_duplicate_ear_tag_returns_409(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_duplicate_ear_tag_returns_409(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     payload = {
         "ear_tag_id": "TEST-DUP-001",
         "farmer_id": farmer_id,
@@ -93,7 +95,7 @@ async def test_duplicate_ear_tag_returns_409(client: AsyncClient, auth_token: st
     assert r2.json()["error"]["code"] == "EAR_TAG_TAKEN"
 
 
-async def test_create_animal_invalid_farmer(client: AsyncClient, auth_token: str):
+async def test_create_animal_invalid_farmer(client: AsyncClient, auth_token: str) -> None:
     resp = await client.post(
         "/api/v1/animals",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -107,7 +109,7 @@ async def test_create_animal_invalid_farmer(client: AsyncClient, auth_token: str
     assert resp.json()["error"]["code"] == "FARMER_NOT_FOUND"
 
 
-async def test_list_animals_filter_by_farmer(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_list_animals_filter_by_farmer(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     await client.post(
         "/api/v1/animals",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -124,7 +126,7 @@ async def test_list_animals_filter_by_farmer(client: AsyncClient, auth_token: st
         assert item["farmer_id"] == farmer_id
 
 
-async def test_get_animal(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_get_animal(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     create = await client.post(
         "/api/v1/animals",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -139,7 +141,7 @@ async def test_get_animal(client: AsyncClient, auth_token: str, farmer_id: str):
     assert resp.json()["id"] == aid
 
 
-async def test_patch_animal_status(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_patch_animal_status(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     create = await client.post(
         "/api/v1/animals",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -155,7 +157,7 @@ async def test_patch_animal_status(client: AsyncClient, auth_token: str, farmer_
     assert resp.json()["status"] == "SICK"
 
 
-async def test_get_nonexistent_animal(client: AsyncClient, auth_token: str):
+async def test_get_nonexistent_animal(client: AsyncClient, auth_token: str) -> None:
     resp = await client.get(
         "/api/v1/animals/00000000-0000-0000-0000-000000000000",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -163,7 +165,7 @@ async def test_get_nonexistent_animal(client: AsyncClient, auth_token: str):
     assert resp.status_code == 404
 
 
-async def test_animal_with_location(client: AsyncClient, auth_token: str, farmer_id: str):
+async def test_animal_with_location(client: AsyncClient, auth_token: str, farmer_id: str) -> None:
     resp = await client.post(
         "/api/v1/animals",
         headers={"Authorization": f"Bearer {auth_token}"},

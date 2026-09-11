@@ -2,7 +2,9 @@
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi.responses import JSONResponse
+from geoalchemy2.elements import WKBElement
 from geoalchemy2.shape import from_shape, to_shape
 from shapely.geometry import Point
 from sqlalchemy import func, select
@@ -30,7 +32,7 @@ logger = logging.getLogger("pashumauli.cases")
 router = APIRouter(prefix="/cases", tags=["cases"])
 
 
-def _geo_to_loc(geo) -> LocationIn | None:
+def _geo_to_loc(geo: WKBElement | None) -> LocationIn | None:
     if geo is None:
         return None
     try:
@@ -40,7 +42,7 @@ def _geo_to_loc(geo) -> LocationIn | None:
         return None
 
 
-def _loc_to_geo(loc: LocationIn | None):
+def _loc_to_geo(loc: LocationIn | None) -> WKBElement | None:
     if loc is None:
         return None
     return from_shape(Point(loc.longitude, loc.latitude), srid=4326)
@@ -73,7 +75,7 @@ async def create_case(
     payload: HealthCaseCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> HealthCaseOut:
+) -> HealthCaseOut | Response:
     """Create a health case.
 
     If ``client_id`` is provided and already exists, the existing record is
@@ -97,7 +99,6 @@ async def create_case(
                 extra={"client_id": str(payload.client_id), "case_id": str(existing_case.id)},
             )
             # Return 200 with existing record — ALREADY_APPLIED
-            from fastapi.responses import JSONResponse
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
                 content=_to_out(existing_case).model_dump(mode="json"),
@@ -124,7 +125,6 @@ async def create_case(
         )
         existing_case = existing.scalar_one_or_none()
         if existing_case is not None:
-            from fastapi.responses import JSONResponse
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
                 content=_to_out(existing_case).model_dump(mode="json"),

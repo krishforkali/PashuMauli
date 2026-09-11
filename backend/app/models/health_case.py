@@ -3,6 +3,7 @@ import uuid
 from datetime import UTC, datetime
 
 from geoalchemy2 import Geography
+from geoalchemy2.elements import WKBElement
 from sqlalchemy import DateTime, Float, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -45,7 +46,7 @@ class HealthCase(Base):
         String(32), nullable=False, default="UNKNOWN"
     )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="OPEN")
-    location: Mapped[Geography | None] = mapped_column(
+    location: Mapped[WKBElement | None] = mapped_column(
         Geography("POINT", srid=4326), nullable=True
     )
     ai_model_version: Mapped[str | None] = mapped_column(String(64), nullable=True)

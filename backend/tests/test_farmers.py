@@ -1,4 +1,7 @@
 """Phase 2 farmers API tests."""
+from collections.abc import AsyncGenerator
+from typing import cast
+
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -21,13 +24,14 @@ async def _register_and_login(client: AsyncClient, phone: str, password: str = "
         "/api/v1/auth/login",
         json={"phone": phone, "password": password},
     )
-    return resp.json()["access_token"]
+    return cast(str, resp.json()["access_token"])
 
 
 @pytest_asyncio.fixture
-async def client():
+async def client() -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
+        transport=ASGITransport(app=app),  # type: ignore[arg-type]
+        base_url="http://test",
     ) as ac:
         yield ac
 
@@ -37,13 +41,11 @@ async def auth_token(client: AsyncClient) -> str:
     return await _register_and_login(client, "+9901100001")
 
 
-
-
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
 
-async def test_create_farmer(client: AsyncClient, auth_token: str):
+async def test_create_farmer(client: AsyncClient, auth_token: str) -> None:
     resp = await client.post(
         "/api/v1/farmers",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -55,7 +57,7 @@ async def test_create_farmer(client: AsyncClient, auth_token: str):
     assert "id" in data
 
 
-async def test_create_farmer_with_location(client: AsyncClient, auth_token: str):
+async def test_create_farmer_with_location(client: AsyncClient, auth_token: str) -> None:
     resp = await client.post(
         "/api/v1/farmers",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -70,7 +72,7 @@ async def test_create_farmer_with_location(client: AsyncClient, auth_token: str)
     assert data["location"]["longitude"] == pytest.approx(73.8567, abs=0.001)
 
 
-async def test_list_farmers_masked_phone(client: AsyncClient, auth_token: str):
+async def test_list_farmers_masked_phone(client: AsyncClient, auth_token: str) -> None:
     await client.post(
         "/api/v1/farmers",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -90,7 +92,7 @@ async def test_list_farmers_masked_phone(client: AsyncClient, auth_token: str):
             assert "****" in item["phone_masked"]
 
 
-async def test_get_farmer_full_phone(client: AsyncClient, auth_token: str):
+async def test_get_farmer_full_phone(client: AsyncClient, auth_token: str) -> None:
     create_resp = await client.post(
         "/api/v1/farmers",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -106,7 +108,7 @@ async def test_get_farmer_full_phone(client: AsyncClient, auth_token: str):
     assert resp.json()["phone"] == "07099887766"
 
 
-async def test_patch_farmer(client: AsyncClient, auth_token: str):
+async def test_patch_farmer(client: AsyncClient, auth_token: str) -> None:
     create_resp = await client.post(
         "/api/v1/farmers",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -122,7 +124,7 @@ async def test_patch_farmer(client: AsyncClient, auth_token: str):
     assert resp.json()["name"] == "Updated Name"
 
 
-async def test_get_nonexistent_farmer(client: AsyncClient, auth_token: str):
+async def test_get_nonexistent_farmer(client: AsyncClient, auth_token: str) -> None:
     resp = await client.get(
         "/api/v1/farmers/00000000-0000-0000-0000-000000000000",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -130,12 +132,12 @@ async def test_get_nonexistent_farmer(client: AsyncClient, auth_token: str):
     assert resp.status_code == 404
 
 
-async def test_unauthenticated_farmer_request(client: AsyncClient):
+async def test_unauthenticated_farmer_request(client: AsyncClient) -> None:
     resp = await client.get("/api/v1/farmers")
     assert resp.status_code == 403  # HTTPBearer returns 403 when no token
 
 
-async def test_farmer_pagination(client: AsyncClient, auth_token: str):
+async def test_farmer_pagination(client: AsyncClient, auth_token: str) -> None:
     resp = await client.get(
         "/api/v1/farmers?page=1&page_size=5",
         headers={"Authorization": f"Bearer {auth_token}"},

@@ -4,7 +4,7 @@ Secrets are read exclusively from environment; never hardcoded.
 """
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import bcrypt
 from jose import JWTError, jwt
@@ -57,7 +57,7 @@ def create_access_token(subject: str, extra: dict[str, Any] | None = None) -> st
     }
     if extra:
         payload.update(extra)
-    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    return cast(str, jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM))
 
 
 def create_refresh_token(subject: str) -> str:
@@ -68,7 +68,7 @@ def create_refresh_token(subject: str) -> str:
         "exp": _now_utc() + timedelta(seconds=settings.JWT_REFRESH_TOKEN_EXPIRY),
         "type": "refresh",
     }
-    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    return cast(str, jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM))
 
 
 def decode_token(token: str) -> dict[str, Any]:
@@ -77,10 +77,13 @@ def decode_token(token: str) -> dict[str, Any]:
     Raises:
         JWTError: If signature invalid, expired, or malformed.
     """
-    return jwt.decode(
-        token,
-        settings.JWT_SECRET,
-        algorithms=[settings.JWT_ALGORITHM],
+    return cast(
+        dict[str, Any],
+        jwt.decode(
+            token,
+            settings.JWT_SECRET,
+            algorithms=[settings.JWT_ALGORITHM],
+        ),
     )
 
 

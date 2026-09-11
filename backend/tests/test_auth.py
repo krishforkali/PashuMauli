@@ -4,6 +4,8 @@ Tests run inside the Docker container where the DB is reachable.
 Uses httpx.AsyncClient with ASGITransport (no real network needed for FastAPI).
 """
 
+from collections.abc import AsyncGenerator
+
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -14,9 +16,10 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest_asyncio.fixture
-async def client():
+async def client() -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
+        transport=ASGITransport(app=app),  # type: ignore[arg-type]
+        base_url="http://test",
     ) as ac:
         yield ac
 
@@ -27,7 +30,7 @@ async def client():
 # Register
 # ---------------------------------------------------------------------------
 
-async def test_register_success(client: AsyncClient):
+async def test_register_success(client: AsyncClient) -> None:
     resp = await client.post(
         "/api/v1/auth/register",
         json={"name": "Test Farmer", "phone": "+9900000001", "password": "strongpass1"},
@@ -39,7 +42,7 @@ async def test_register_success(client: AsyncClient):
     assert "password_hash" not in data
 
 
-async def test_register_duplicate_phone(client: AsyncClient):
+async def test_register_duplicate_phone(client: AsyncClient) -> None:
     payload = {"name": "Dup", "phone": "+9900000002", "password": "strongpass1"}
     r1 = await client.post("/api/v1/auth/register", json=payload)
     assert r1.status_code == 201
@@ -48,7 +51,7 @@ async def test_register_duplicate_phone(client: AsyncClient):
     assert r2.json()["error"]["code"] == "PHONE_TAKEN"
 
 
-async def test_register_weak_password(client: AsyncClient):
+async def test_register_weak_password(client: AsyncClient) -> None:
     resp = await client.post(
         "/api/v1/auth/register",
         json={"name": "Weak", "phone": "+9900000003", "password": "short"},
@@ -56,7 +59,7 @@ async def test_register_weak_password(client: AsyncClient):
     assert resp.status_code == 422
 
 
-async def test_register_privileged_role(client: AsyncClient):
+async def test_register_privileged_role(client: AsyncClient) -> None:
     resp = await client.post(
         "/api/v1/auth/register",
         json={
@@ -74,7 +77,7 @@ async def test_register_privileged_role(client: AsyncClient):
 # Login
 # ---------------------------------------------------------------------------
 
-async def test_login_success(client: AsyncClient):
+async def test_login_success(client: AsyncClient) -> None:
     # Register first
     await client.post(
         "/api/v1/auth/register",
@@ -91,7 +94,7 @@ async def test_login_success(client: AsyncClient):
     assert data["token_type"] == "Bearer"
 
 
-async def test_login_wrong_password(client: AsyncClient):
+async def test_login_wrong_password(client: AsyncClient) -> None:
     await client.post(
         "/api/v1/auth/register",
         json={"name": "Bad Pass", "phone": "+9900000005", "password": "correctpass"},
@@ -104,7 +107,7 @@ async def test_login_wrong_password(client: AsyncClient):
     assert resp.json()["error"]["code"] == "INVALID_CREDENTIALS"
 
 
-async def test_login_unknown_phone(client: AsyncClient):
+async def test_login_unknown_phone(client: AsyncClient) -> None:
     resp = await client.post(
         "/api/v1/auth/login",
         json={"phone": "+9900099999", "password": "doesntmatter"},
@@ -116,7 +119,7 @@ async def test_login_unknown_phone(client: AsyncClient):
 # Token refresh
 # ---------------------------------------------------------------------------
 
-async def test_refresh_token(client: AsyncClient):
+async def test_refresh_token(client: AsyncClient) -> None:
     await client.post(
         "/api/v1/auth/register",
         json={"name": "Refresh User", "phone": "+9900000006", "password": "refreshpass"},
@@ -134,7 +137,7 @@ async def test_refresh_token(client: AsyncClient):
     assert "access_token" in resp.json()
 
 
-async def test_refresh_with_access_token_rejected(client: AsyncClient):
+async def test_refresh_with_access_token_rejected(client: AsyncClient) -> None:
     await client.post(
         "/api/v1/auth/register",
         json={"name": "Bad Refresh", "phone": "+9900000007", "password": "badrefresh1"},
@@ -152,7 +155,7 @@ async def test_refresh_with_access_token_rejected(client: AsyncClient):
     assert resp.status_code == 401
 
 
-async def test_expired_token_rejected(client: AsyncClient):
+async def test_expired_token_rejected(client: AsyncClient) -> None:
     """An expired / tampered token must be rejected with 401."""
     resp = await client.get(
         "/api/v1/auth/me",
@@ -165,7 +168,7 @@ async def test_expired_token_rejected(client: AsyncClient):
 # /me
 # ---------------------------------------------------------------------------
 
-async def test_me_endpoint(client: AsyncClient):
+async def test_me_endpoint(client: AsyncClient) -> None:
     await client.post(
         "/api/v1/auth/register",
         json={"name": "Me User", "phone": "+9900000008", "password": "mepassword1"},
@@ -186,7 +189,7 @@ async def test_me_endpoint(client: AsyncClient):
 # RBAC — AT-18: Farmer cannot access privileged endpoint
 # ---------------------------------------------------------------------------
 
-async def test_farmer_cannot_post_emergency_broadcast_placeholder(client: AsyncClient):
+async def test_farmer_cannot_post_emergency_broadcast_placeholder(client: AsyncClient) -> None:
     """Farmer role should receive 403/404 on any emergency broadcast endpoint.
 
     The emergency broadcast endpoint is not implemented in Phase 2.

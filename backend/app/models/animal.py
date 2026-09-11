@@ -3,6 +3,7 @@ import uuid
 from datetime import UTC, date, datetime
 
 from geoalchemy2 import Geography
+from geoalchemy2.elements import WKBElement
 from sqlalchemy import Date, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -29,7 +30,7 @@ class Animal(Base):
     sex: Mapped[str | None] = mapped_column(String(16), nullable=True)
     date_of_birth: Mapped[date | None] = mapped_column(Date(), nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="ACTIVE")
-    location: Mapped[Geography | None] = mapped_column(
+    location: Mapped[WKBElement | None] = mapped_column(
         Geography("POINT", srid=4326), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
