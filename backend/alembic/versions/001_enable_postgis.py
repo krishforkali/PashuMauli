@@ -22,5 +22,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute('DROP EXTENSION IF EXISTS "uuid-ossp";')
-    op.execute("DROP EXTENSION IF EXISTS postgis;")
+    op.execute('DROP EXTENSION IF EXISTS "uuid-ossp" CASCADE;')
+    op.execute("DROP EXTENSION IF EXISTS postgis CASCADE;")
