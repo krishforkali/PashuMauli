@@ -7,6 +7,26 @@ phase begins.
 
 ---
 
+## IN-08 Phase 5 model artifact and CPH2213 accelerator
+
+**Source:** Phase 5 implementation request.
+**Finding:** CPH2213 is connected (`EIEYQCVORWJJKJTG`) and reports Android 13, `arm64-v8a`, and MediaTek `MT6853V/TNZA`. No validated livestock TFLite artifact or licensed LiteRT-LM Gemma 3 1B IT artifact is present in the repository, and no verified SoC-specific LiteRT-LM acceleration artifact was identified.
+**Decision:** Keep all model artifacts external to Git. Configure the Android bridge for the safest CPU fallback when an approved Gemma artifact is installed. Do not claim vision inference, LLM generation, latency, multilingual generation, or physical-device AI success until those artifacts are supplied and measured.
+**Status:** PARTIALLY RESOLVED — CPU backend configured, model provisioning guide implemented in AdvisoryScreen. Model file must be pushed manually via ADB. Vision model remains StubMLAdapter until a validated livestock TFLite model is acquired.
+
+---
+
+## IN-09 Network error on Android 13 physical device — root cause and fix
+
+**Source:** Phase 5 real-device testing.
+**Finding:** The app showed "Network error" on login/register despite ADB reverse being active (`tcp:8000 tcp:8000` confirmed). Root cause: Android 13 may resolve `localhost` to `::1` (IPv6 loopback), but `adb reverse tcp:8000 tcp:8000` only binds on IPv4 `127.0.0.1`. The Dart `http` package then receives a "Connection refused" error because IPv6 port 8000 is not forwarded.
+**Fix applied:** Changed `kDefaultApiBaseUrl` default from `http://localhost:8000` to `http://127.0.0.1:8000` in `mobile/lib/data/remote/api_client.dart`. Also improved `ApiResponse.networkError()` factory to provide descriptive, type-specific error messages instead of collapsing all network failures to a generic string.
+**Test added:** `test/unit/api_config_test.dart` and `test/unit/phase5_ai_test.dart` both assert `kDefaultApiBaseUrl` does not contain `localhost`.
+**Status:** RESOLVED
+
+---
+
+
 ## IN-01 GIS boundary data — no dataset specified
 
 **Source:** DATABASE_SCHEMA.md §GIS reference tables  

@@ -8,6 +8,14 @@ void main() {
           reason: '10.0.2.2 is unreachable on physical Android devices');
     });
 
+    test('default URL uses explicit IPv4 127.0.0.1, not localhost', () {
+      // Android 13 may resolve `localhost` to ::1 (IPv6).
+      // adb reverse tcp:8000 tcp:8000 only binds on IPv4 127.0.0.1.
+      // Using localhost causes "connection refused" even with ADB reverse active.
+      expect(kDefaultApiBaseUrl.contains('localhost'), isFalse,
+          reason: 'Use 127.0.0.1, not localhost, for ADB reverse compatibility');
+    });
+
     test('ApiClient accepts injected HTTPS tunnel URL for physical device', () {
       const tunnelUrl = 'https://pashumauli-demo.trycloudflare.com';
       final client = ApiClient(baseUrl: tunnelUrl);

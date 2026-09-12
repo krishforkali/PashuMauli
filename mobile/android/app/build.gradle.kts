@@ -4,6 +4,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+dependencies {
+    // Verified against Google Maven metadata on 2026-09-13.
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.17.0")
+}
+
 android {
     namespace = "com.pashumauli.pashumauli"
     compileSdk = flutter.compileSdkVersion

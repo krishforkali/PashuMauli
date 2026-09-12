@@ -1,15 +1,30 @@
 # PashuMauli — Implementation Status
 
-**Last updated:** Phase 4 — Gate 4 Offline Sync Engine Complete & Physically Verified  
+**Last updated:** Phase 5 — AI / Risk / Advisory — Network fix + Phase 5 implementation complete  
 **Updated by:** Antigravity agent
 
 ---
 
 ## Current Phase
 
-**Phase 4 — Offline Sync Engine**
+**Phase 5 — AI / Risk / Advisory (In Progress)**
 
-Phase 4 implementation, automated test suite, and physical Android device verification is **COMPLETE and PASSED**. The offline sync engine has been built with atomic local mutation guarantees (single SQLite transaction for entity write + `sync_queue` enqueue), deterministic FIFO replay (`created_at ASC`), dedicated `SyncEngine` service with concurrency guard mutex, transient failure handling with bounded exponential backoff, permanent failure marking (unrecoverable 4xx / max attempts), automatic 401 token refresh without deleting pending operations, idempotency adherence (`client_id` with HTTP 200 `ALREADY_APPLIED`), reactivity to `ConnectivityService` (`offline -> online`), real-time UI synchronization across `SyncStatusScreen`, `OfflineQueueScreen`, and `HomeScreen`, 66/66 automated tests passing with 0 `flutter analyze` issues, and real physical Android device (`CPH2213`) end-to-end verification (offline creation -> network restored -> Cloudflare tunnel transmission -> FastAPI backend `201 Created` -> PostgreSQL persistence with 0 duplicates).
+Phase 5 implementation is **IN PROGRESS**. Core components complete: LiteRT-LM Gemma 3 1B integration (CPU backend), deterministic risk engine, safety validator, advisory screen with LLM + static advisories, AI scan/result screens. Network error root cause identified and fixed (localhost → 127.0.0.1 for Android 13 ADB reverse compatibility). 99/99 automated tests passing, 0 `flutter analyze` issues.
+
+### Phase 5 Checklist
+
+| Sub-phase | Component | Status |
+|---|---|---|
+| 5A | Network fix: localhost → 127.0.0.1 (ADB reverse IPv4) | ✅ DONE |
+| 5B | LiteRT-LM Gemma 3 1B, CPU backend, MainActivity bridge | ✅ DONE |
+| 5C | Vision: TFLiteAdapter + StubMLAdapter (model not installed) | ✅ DONE |
+| 5D | Risk Engine: deterministic, all risk levels, escalation | ✅ DONE |
+| 5E | Safety Validator: output guardrails, fallback | ✅ DONE |
+| 5F | AI Scan screen: Phase 5 implementation with risk engine | ✅ DONE |
+| 5G | AI Result screen: risk display, escalation, disclaimers | ✅ DONE |
+| 5H | Advisory screen: LLM + static advisories + model status | ✅ DONE |
+| 5I | Tests: 99/99 pass (added 33 new Phase 5 tests) | ✅ DONE |
+| 5J | On-device validation: model push pending | ⏳ PENDING (model file required) |
 
 ---
 
@@ -22,6 +37,7 @@ Phase 4 implementation, automated test suite, and physical Android device verifi
 | 2 | Auth, users, farmers, animals, cases | Gate 2 verification: 44/44 tests pass, ruff clean, CRUD + idempotency + RBAC | ✅ COMPLETE |
 | 3 | Mobile foundation | Gate 3 verification: 56/56 tests pass, `flutter analyze` 0 issues, 17 screens, SQLite persistence, Physical Android Device (CPH2213) live backend integration | ✅ COMPLETE & PASSED |
 | 4 | Offline sync engine | Gate 4 verification: 66/66 tests pass, `flutter analyze` 0 issues, atomic transactions, FIFO replay, idempotency, retry/backoff, token refresh, physical device CPH2213 offline->online sync verified into PostgreSQL | ✅ COMPLETE & PASSED |
+| 5 | AI / risk / advisory | Network fix, risk engine, safety validator, advisory LLM screen, 99/99 tests, 0 analyze issues | 🔄 IN PROGRESS |
 
 ---
 
