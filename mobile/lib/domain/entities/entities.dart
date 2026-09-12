@@ -412,6 +412,9 @@ class ModelMetadata {
   final String filePath;
   final String hash;
   final DateTime installedAt;
+  final String runtime;
+  final String backend;
+  final String status;
 
   const ModelMetadata({
     required this.modelName,
@@ -419,6 +422,9 @@ class ModelMetadata {
     required this.filePath,
     required this.hash,
     required this.installedAt,
+    this.runtime = 'UNKNOWN',
+    this.backend = 'CPU',
+    this.status = 'NOT_INSTALLED',
   });
 }
 

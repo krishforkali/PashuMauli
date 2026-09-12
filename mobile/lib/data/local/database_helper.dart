@@ -10,7 +10,7 @@ import 'package:sqflite/sqflite.dart';
 /// All writes must go through transactions — see OFFLINE_SYNC.md §Offline write rule.
 class DatabaseHelper {
   static const String _dbName = 'pashumauli.db';
-  static const int _dbVersion = 1;
+  static const int _dbVersion = 2;
 
   static DatabaseHelper? _instance;
   Database? _database;
@@ -28,8 +28,7 @@ class DatabaseHelper {
       DatabaseHelper._(dbPath: inMemoryDatabasePath);
 
   /// Create a database helper for a custom path
-  static DatabaseHelper forPath(String path) =>
-      DatabaseHelper._(dbPath: path);
+  static DatabaseHelper forPath(String path) => DatabaseHelper._(dbPath: path);
 
   /// Set the singleton instance (for testing)
   static void setInstanceForTesting(DatabaseHelper? helper) {
@@ -82,8 +81,14 @@ class DatabaseHelper {
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     debugPrint('[DB] Upgrading from $oldVersion to $newVersion');
-    // Future migrations go here as additive ALTER TABLE statements.
-    // Do NOT drop/recreate tables.
+    if (oldVersion < 2) {
+      await db.execute(
+          "ALTER TABLE model_metadata ADD COLUMN runtime TEXT NOT NULL DEFAULT 'UNKNOWN'");
+      await db.execute(
+          "ALTER TABLE model_metadata ADD COLUMN backend TEXT NOT NULL DEFAULT 'CPU'");
+      await db.execute(
+          "ALTER TABLE model_metadata ADD COLUMN status TEXT NOT NULL DEFAULT 'NOT_INSTALLED'");
+    }
   }
 
   // ─── Schema DDL ─────────────────────────────────────────────────────────────
@@ -225,7 +230,10 @@ class DatabaseHelper {
         model_version  TEXT NOT NULL,
         file_path      TEXT NOT NULL,
         hash           TEXT NOT NULL,
-        installed_at   TEXT NOT NULL
+        installed_at   TEXT NOT NULL,
+        runtime        TEXT NOT NULL DEFAULT 'UNKNOWN',
+        backend        TEXT NOT NULL DEFAULT 'CPU',
+        status         TEXT NOT NULL DEFAULT 'NOT_INSTALLED'
       )
     ''');
   }

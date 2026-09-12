@@ -1,0 +1,1 @@
+{"version":"1.0.0","advisories":[{"candidate":"skin_lesion","risk_level":"MEDIUM","species":"cattle","safe_actions":["पशुवैद्यकीय तपासणी होईपर्यंत जनावर वेगळे ठेवा.","ताप, भूक आणि जखमांचा प्रसार नोंदवा."],"warning_signs":["श्वास घेण्यास त्रास","उभे राहता न येणे"],"escalation":true,"language":"mr"}]}

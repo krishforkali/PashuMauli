@@ -1,0 +1,1 @@
+{"version":"1.0.0","advisories":[{"candidate":"skin_lesion","risk_level":"MEDIUM","species":"cattle","safe_actions":["पशु चिकित्सक की समीक्षा तक पशु को अलग रखें।","बुखार, भूख और घाव के फैलाव को दर्ज करें।"],"warning_signs":["सांस लेने में कठिनाई","खड़ा न हो पाना"],"escalation":true,"language":"hi"}]}

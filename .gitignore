@@ -44,4 +44,5 @@ Thumbs.db
 /scripts/*.log
 /scripts/*.png
 /scripts/*.xml
-
+models/
+*.litertlm

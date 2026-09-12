@@ -7,6 +7,15 @@ phase begins.
 
 ---
 
+## IN-08 Phase 5 model artifact and CPH2213 accelerator
+
+**Source:** Phase 5 implementation request.
+**Finding:** CPH2213 is connected (`EIEYQCVORWJJKJTG`) and reports Android 13, `arm64-v8a`, and MediaTek `MT6853V/TNZA`. No validated livestock TFLite artifact or licensed LiteRT-LM Gemma 3 1B IT artifact is present in the repository, and no verified SoC-specific LiteRT-LM acceleration artifact was identified.
+**Decision:** Keep all model artifacts external to Git. Configure the Android bridge for the safest CPU fallback when an approved Gemma artifact is installed. Do not claim vision inference, LLM generation, latency, multilingual generation, or physical-device AI success until those artifacts are supplied and measured.
+**Status:** OPEN — requires approved artifact acquisition and veterinary-approved knowledge expansion.
+
+---
+
 ## IN-01 GIS boundary data — no dataset specified
 
 **Source:** DATABASE_SCHEMA.md §GIS reference tables  
