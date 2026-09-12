@@ -73,13 +73,15 @@ class _AiScanScreenState extends ConsumerState<AiScanScreen> {
 
     // Attempt vision inference
     try {
-      // TFLiteAdapter.load() is called when a real model path is set.
-      // StubMLAdapter.infer() always throws UnsupportedError.
-      if (_imageBytes != null && _adapter.isReady) {
+      if (_adapter is StubMLAdapter || !_adapter.isReady) {
+        // No validated vision model loaded — expected state for Phase 5.
+        // StubMLAdapter.isReady is always false; TFLiteAdapter.isReady is
+        // false until load() is called with a valid model path.
+        visionError = 'vision_unavailable';
+      } else if (_imageBytes != null) {
         mlResult = await _adapter.infer(_imageBytes!.toList());
       }
     } on UnsupportedError {
-      // No validated livestock vision model installed — expected state.
       visionError = 'vision_unavailable';
     } on StateError catch (e) {
       visionError = e.message;
