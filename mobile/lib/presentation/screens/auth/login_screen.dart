@@ -95,7 +95,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     } else {
       setState(() {
         _errorMessage = response.isNetworkError
-            ? 'Network error — check connection'
+            ? '${response.errorMessage ?? 'Network error'}\n(URL: $kDefaultApiBaseUrl)'
             : response.errorMessage ?? 'Login failed';
         _loading = false;
       });
@@ -146,7 +146,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     } else {
       setState(() {
         _errorMessage = response.isNetworkError
-            ? 'Network error — check connection'
+            ? '${response.errorMessage ?? 'Network error'}\n(URL: $kDefaultApiBaseUrl)'
             : response.errorMessage ?? 'Registration failed';
         _loading = false;
       });

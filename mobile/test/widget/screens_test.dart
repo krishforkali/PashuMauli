@@ -218,8 +218,10 @@ void main() {
         ),
       ));
       await tester.pump();
-      expect(find.text('AI Scan Result'), findsWidgets);
-      expect(find.text('AI Model Not Yet Available'), findsWidgets);
+      // Phase 5: title changed from 'AI Scan Result' to 'Risk Assessment Result'
+      expect(find.text('Risk Assessment Result'), findsWidgets);
+      // Phase 5: stub mode replaced by risk engine output — check risk card
+      expect(find.text('Risk Level: LOW'), findsWidgets);
     });
 
     testWidgets('AI disclaimer is always visible on result screen',
@@ -243,7 +245,8 @@ void main() {
         child: const MaterialApp(home: AdvisoryScreen()),
       ));
       await tester.pump();
-      expect(find.text('Advisories'), findsWidgets);
+      // Phase 5: title changed from 'Advisories' to 'AI Advisory'
+      expect(find.text('AI Advisory'), findsWidgets);
       expect(find.text('FMD Prevention'), findsWidgets);
     });
 

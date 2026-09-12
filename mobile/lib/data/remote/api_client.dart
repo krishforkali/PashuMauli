@@ -5,10 +5,17 @@ import 'package:pashumauli/services/secure_storage_service.dart';
 
 /// Default API base URL from compile-time environment variable `API_BASE_URL`.
 /// Can be overridden at build time via `--dart-define=API_BASE_URL=<URL>`.
-/// Never defaults to emulator-only 10.0.2.2.
+///
+/// Development default uses explicit IPv4 `127.0.0.1` — NOT `localhost`.
+/// Reason: Android 13 may resolve `localhost` to `::1` (IPv6), but
+/// `adb reverse tcp:8000 tcp:8000` only binds on IPv4 `127.0.0.1`.
+/// Using `localhost` causes connection refused even with ADB reverse active.
+///
+/// For LAN access (e.g. without ADB): set API_BASE_URL=http://192.168.x.x:8000
+/// at build time or via flavors.
 const String kDefaultApiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://localhost:8000',
+  defaultValue: 'http://127.0.0.1:8000',
 );
 
 /// Typed HTTP client for Phase 2 backend endpoints.
@@ -62,16 +69,19 @@ class ApiClient {
     required String phone,
     required String password,
   }) async {
+    final url = '$baseUrl/api/v1/auth/login';
+    debugPrint('[API] POST $url');
     try {
       final response = await _httpClient.post(
-        Uri.parse('$baseUrl/api/v1/auth/login'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'phone': phone, 'password': password}),
       );
+      debugPrint('[API] POST $url -> ${response.statusCode}');
       return _parse(response);
     } catch (e) {
-      debugPrint('[API] login error: $e');
-      return ApiResponse.error('NETWORK_ERROR', e.toString(), 0);
+      debugPrint('[API] login FAILED: ${e.runtimeType}: $e');
+      return ApiResponse.networkError(e);
     }
   }
 
@@ -82,9 +92,11 @@ class ApiClient {
     required String password,
     required String role,
   }) async {
+    final url = '$baseUrl/api/v1/auth/register';
+    debugPrint('[API] POST $url');
     try {
       final response = await _httpClient.post(
-        Uri.parse('$baseUrl/api/v1/auth/register'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'name': name,
@@ -93,10 +105,11 @@ class ApiClient {
           'role': role,
         }),
       );
+      debugPrint('[API] POST $url -> ${response.statusCode}');
       return _parse(response);
     } catch (e) {
-      debugPrint('[API] register error: $e');
-      return ApiResponse.error('NETWORK_ERROR', e.toString(), 0);
+      debugPrint('[API] register FAILED: ${e.runtimeType}: $e');
+      return ApiResponse.networkError(e);
     }
   }
 
@@ -294,6 +307,39 @@ class ApiResponse {
         errorCode: code,
         errorMessage: message,
       );
+
+  /// Build a network-level error from a caught Dart exception.
+  /// Preserves the exception type for diagnostics (e.g. SocketException,
+  /// HandshakeException) rather than collapsing everything to 'Network error'.
+  factory ApiResponse.networkError(Object e) {
+    final type = e.runtimeType.toString();
+    // Provide a user-friendly summary while keeping the raw detail.
+    String friendly;
+    final raw = e.toString();
+    if (raw.contains('Connection refused') ||
+        raw.contains('ECONNREFUSED') ||
+        raw.contains('connection refused')) {
+      friendly = 'Connection refused — is the backend running?';
+    } else if (raw.contains('SocketException') ||
+        raw.contains('Network is unreachable') ||
+        raw.contains('No address associated')) {
+      friendly = 'Socket error — check network connection.';
+    } else if (raw.contains('HandshakeException') ||
+        raw.contains('CERTIFICATE_VERIFY_FAILED')) {
+      friendly = 'TLS/certificate error: $raw';
+    } else if (raw.contains('TimeoutException') ||
+        raw.contains('Connection timed out')) {
+      friendly = 'Connection timed out — check backend and network.';
+    } else {
+      friendly = '$type: $raw';
+    }
+    return ApiResponse._(
+      isSuccess: false,
+      statusCode: 0,
+      errorCode: 'NETWORK_ERROR',
+      errorMessage: friendly,
+    );
+  }
 
   bool get isNetworkError => statusCode == 0;
   bool get isUnauthorized => statusCode == 401;
