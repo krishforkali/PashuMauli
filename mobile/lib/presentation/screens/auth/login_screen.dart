@@ -6,12 +6,9 @@ import 'package:pashumauli/services/auth_notifier.dart';
 import 'package:pashumauli/data/remote/api_client.dart';
 
 /// API client provider — baseUrl from environment/config.
-/// In development: set to local backend URL.
+/// Can be overridden at build time via `--dart-define=API_BASE_URL=<URL>`.
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient(
-      baseUrl: const String.fromEnvironment(
-        'API_BASE_URL',
-        defaultValue: 'http://10.0.2.2:8000', // Android emulator → host localhost
-      ),
+      baseUrl: kDefaultApiBaseUrl,
     ));
 
 /// Screen 3 — Login / Registration

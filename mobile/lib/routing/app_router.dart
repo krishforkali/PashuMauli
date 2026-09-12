@@ -48,16 +48,34 @@ class AppRoutes {
       '/animals/$animalId/vaccinations';
 }
 
+/// Listenable that notifies GoRouter when auth state changes without recreating the router instance.
+class RouterNotifier extends ChangeNotifier {
+  final Ref _ref;
+
+  RouterNotifier(this._ref) {
+    _ref.listen<AuthState>(
+      authNotifierProvider,
+      (_, __) => notifyListeners(),
+    );
+  }
+}
+
+final routerNotifierProvider = Provider<RouterNotifier>((ref) {
+  return RouterNotifier(ref);
+});
+
 /// Role-aware GoRouter.
 ///
 /// Route visibility is UX only — backend is always the security authority.
 /// See SECURITY.md §Authorization.
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authNotifierProvider);
+  final notifier = ref.watch(routerNotifierProvider);
 
   return GoRouter(
     initialLocation: AppRoutes.splash,
+    refreshListenable: notifier,
     redirect: (context, state) {
+      final authState = ref.read(authNotifierProvider);
       final isLoading = authState is AuthLoading;
       final isAuthenticated = authState is AuthAuthenticated;
       final isSplash = state.matchedLocation == AppRoutes.splash;
@@ -66,9 +84,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       if (isLoading) return null;
 
+      // Allow splash screen to manage its own startup navigation
+      if (isSplash) return null;
+
       // Public routes (no auth required)
-      if (isSplash || isLanguage || isLogin) {
-        if (isAuthenticated && !isSplash) {
+      if (isLanguage || isLogin) {
+        if (isAuthenticated) {
           return AppRoutes.home;
         }
         return null;

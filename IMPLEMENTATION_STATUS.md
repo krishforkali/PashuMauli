@@ -9,7 +9,7 @@
 
 **Phase 3 — Mobile Foundation (Flutter + SQLite)**
 
-Phase 3 implementation is **COMPLETE**. The mobile application foundation has been built with clean architecture, full SQLite local database persistence across 8 tables, transactional guarantees, auth session lifecycle, typed API client, trilingual localization (EN, HI, MR), reactive connectivity monitoring, role-aware GoRouter navigation, all 17 specification-compliant screens, media and location abstractions, ML model adapter stub, and a comprehensive 53-test verification suite with 0 analysis issues.
+Phase 3 implementation and physical Android device verification is **COMPLETE and PASSED**. The mobile application foundation has been built with clean architecture, full SQLite local database persistence across 8 tables, transactional guarantees, auth session lifecycle, typed API client, trilingual localization (EN, HI, MR), reactive connectivity monitoring, role-aware GoRouter navigation with `RouterNotifier` (`refreshListenable`), all 17 specification-compliant screens, media and location abstractions, ML model adapter stub, physical Android device (`CPH2213`) connectivity via configurable build-time `API_BASE_URL` over live HTTPS tunnel, and a comprehensive 56-test verification suite with 0 analysis issues.
 
 ---
 
@@ -20,7 +20,7 @@ Phase 3 implementation is **COMPLETE**. The mobile application foundation has be
 | 0 | Spec review + plan | Plan document exists; repo inspected | ✅ COMPLETE |
 | 1 | DB + infra foundation | Gate 1 verification suite passes (DB, Redis, Migrations, Pytest, Ruff, Mypy) | ✅ COMPLETE |
 | 2 | Auth, users, farmers, animals, cases | Gate 2 verification: 44/44 tests pass, ruff clean, CRUD + idempotency + RBAC | ✅ COMPLETE |
-| 3 | Mobile foundation | Gate 3 verification: 53/53 tests pass, `flutter analyze` 0 issues, 17 screens, SQLite persistence | ✅ COMPLETE |
+| 3 | Mobile foundation | Gate 3 verification: 56/56 tests pass, `flutter analyze` 0 issues, 17 screens, SQLite persistence, Physical Android Device (CPH2213) live backend integration | ✅ COMPLETE & PASSED |
 
 ---
 
@@ -55,8 +55,10 @@ Phase 3 implementation is **COMPLETE**. The mobile application foundation has be
 | 9 | 17 Required Screens | All 17 screens implemented without placeholders or stubs that contradict spec | ✅ PASS |
 | 10 | Media & Location foundations | `MediaService` (`image_picker` abstraction) and `LocationService` with graceful denial | ✅ PASS |
 | 11 | ML Model Adapter stub | `MLModelAdapter` interface and `StubMLModelAdapter` with strict AI disclaimers | ✅ PASS |
-| 12 | Automated Test Suite | **53/53 tests passing** (unit tests with `sqflite_common_ffi` + widget smoke tests) | ✅ PASS |
+| 12 | Automated Test Suite | **56/56 tests passing** (unit tests with `sqflite_common_ffi` + widget smoke tests + API config tests) | ✅ PASS |
 | 13 | Static Analysis (`flutter analyze`) | **0 issues found** across all mobile source and test files | ✅ PASS |
+| 14 | Android Network Permissions | `INTERNET` and `ACCESS_NETWORK_STATE` permissions in `main/AndroidManifest.xml` | ✅ PASS |
+| 15 | Physical Device Integration | Physical Android phone (`CPH2213`) verified connecting to laptop backend via build-time `API_BASE_URL` tunnel | ✅ PASS |
 
 ---
 

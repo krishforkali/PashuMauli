@@ -37,3 +37,11 @@ Thumbs.db
 /data/
 /uploads/
 /demo-data/
+
+# Binaries / Tools
+/scripts/*.exe
+*.exe
+/scripts/*.log
+/scripts/*.png
+/scripts/*.xml
+

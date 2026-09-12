@@ -3,6 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pashumauli/services/secure_storage_service.dart';
 
+/// Default API base URL from compile-time environment variable `API_BASE_URL`.
+/// Can be overridden at build time via `--dart-define=API_BASE_URL=<URL>`.
+/// Never defaults to emulator-only 10.0.2.2.
+const String kDefaultApiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://localhost:8000',
+);
+
 /// Typed HTTP client for Phase 2 backend endpoints.
 /// Only endpoints defined in docs/API_CONTRACTS.md are implemented.
 /// Do NOT add endpoints not in that contract.
