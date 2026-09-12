@@ -1,15 +1,15 @@
 # PashuMauli — Implementation Status
 
-**Last updated:** Phase 3 — Gate 3 Mobile Foundation Complete  
+**Last updated:** Phase 4 — Gate 4 Offline Sync Engine Complete & Physically Verified  
 **Updated by:** Antigravity agent
 
 ---
 
 ## Current Phase
 
-**Phase 3 — Mobile Foundation (Flutter + SQLite)**
+**Phase 4 — Offline Sync Engine**
 
-Phase 3 implementation and physical Android device verification is **COMPLETE and PASSED**. The mobile application foundation has been built with clean architecture, full SQLite local database persistence across 8 tables, transactional guarantees, auth session lifecycle, typed API client, trilingual localization (EN, HI, MR), reactive connectivity monitoring, role-aware GoRouter navigation with `RouterNotifier` (`refreshListenable`), all 17 specification-compliant screens, media and location abstractions, ML model adapter stub, physical Android device (`CPH2213`) connectivity via configurable build-time `API_BASE_URL` over live HTTPS tunnel, and a comprehensive 56-test verification suite with 0 analysis issues.
+Phase 4 implementation, automated test suite, and physical Android device verification is **COMPLETE and PASSED**. The offline sync engine has been built with atomic local mutation guarantees (single SQLite transaction for entity write + `sync_queue` enqueue), deterministic FIFO replay (`created_at ASC`), dedicated `SyncEngine` service with concurrency guard mutex, transient failure handling with bounded exponential backoff, permanent failure marking (unrecoverable 4xx / max attempts), automatic 401 token refresh without deleting pending operations, idempotency adherence (`client_id` with HTTP 200 `ALREADY_APPLIED`), reactivity to `ConnectivityService` (`offline -> online`), real-time UI synchronization across `SyncStatusScreen`, `OfflineQueueScreen`, and `HomeScreen`, 66/66 automated tests passing with 0 `flutter analyze` issues, and real physical Android device (`CPH2213`) end-to-end verification (offline creation -> network restored -> Cloudflare tunnel transmission -> FastAPI backend `201 Created` -> PostgreSQL persistence with 0 duplicates).
 
 ---
 
@@ -21,6 +21,7 @@ Phase 3 implementation and physical Android device verification is **COMPLETE an
 | 1 | DB + infra foundation | Gate 1 verification suite passes (DB, Redis, Migrations, Pytest, Ruff, Mypy) | ✅ COMPLETE |
 | 2 | Auth, users, farmers, animals, cases | Gate 2 verification: 44/44 tests pass, ruff clean, CRUD + idempotency + RBAC | ✅ COMPLETE |
 | 3 | Mobile foundation | Gate 3 verification: 56/56 tests pass, `flutter analyze` 0 issues, 17 screens, SQLite persistence, Physical Android Device (CPH2213) live backend integration | ✅ COMPLETE & PASSED |
+| 4 | Offline sync engine | Gate 4 verification: 66/66 tests pass, `flutter analyze` 0 issues, atomic transactions, FIFO replay, idempotency, retry/backoff, token refresh, physical device CPH2213 offline->online sync verified into PostgreSQL | ✅ COMPLETE & PASSED |
 
 ---
 
@@ -28,7 +29,35 @@ Phase 3 implementation and physical Android device verification is **COMPLETE an
 
 | Phase | Name | Depends on |
 |---|---|---|
-| 4 | Sync engine | Phase 2 + 3 ✅ |
+| 5 | AI / risk / advisory | Phase 2 + 3 + 4 ✅ |
+| 6 | Dashboard + GIS | Phase 2 |
+| 7 | WebSockets | Phase 2 + 6 |
+| 8 | IVR | Phase 2 + 7 |
+| 9 | Emergency broadcast | Phase 2 + 7 + 8 |
+| 10 | Lab / vaccination / analytics | Phase 2 |
+| 11 | Integration hardening | Phases 1–10 |
+| 12 | Tests, demo, release | Phases 1–11 |
+
+---
+
+## Gate 4 — Offline Sync Engine Verification Matrix
+
+| Check | Requirement | Result | Status |
+|---|---|---|:---:|
+| 1 | Atomic Local Transactions | Local entity insertion (`local_farmers`, `local_animals`, `local_health_cases`, `local_vaccinations`) and `sync_queue` enqueue executed in a single SQLite `transaction` | ✅ PASS |
+| 2 | Deterministic FIFO Replay | Pending operations replayed strictly in chronological order (`created_at ASC`) | ✅ PASS |
+| 3 | Concurrency Guard | Mutex lock (`_isSyncing`) prevents simultaneous overlapping sync cycles | ✅ PASS |
+| 4 | Idempotent Replay | `HEALTH_CASE` client_id contract respected; backend HTTP 200 `ALREADY_APPLIED` marks item SYNCED with 0 duplicates | ✅ PASS |
+| 5 | Transient Error Handling | Network timeouts and 5xx errors trigger attempt increments and exponential backoff; item stays PENDING | ✅ PASS |
+| 6 | Permanent Error Handling | Non-retryable 4xx errors and max retry exhaustion transition item to FAILED with error message preserved | ✅ PASS |
+| 7 | 401 Token Refresh Flow | Automatic session refresh via `ApiClient.refreshToken` without deleting pending queue items | ✅ PASS |
+| 8 | Offline Reactivity | `ConnectivityService` stream subscription automatically triggers sync on `offline -> online` transition | ✅ PASS |
+| 9 | Real-time UI Sync | `SyncStatusScreen` displays live counters, Sync Now action, and Retry Failed action; `OfflineQueueScreen` supports manual item retries; `HomeScreen` shows live sync banner | ✅ PASS |
+| 10 | Automated Test Suite | **66/66 tests passing** (including 10 comprehensive sync engine tests covering atomicity, FIFO, idempotency, retry, and transitions) | ✅ PASS |
+| 11 | Static Analysis | **`flutter analyze` 0 issues found** across all mobile code and test files | ✅ PASS |
+| 12 | Physical Android Verification | Physical device `CPH2213` verified creating records offline, persisting on restart, reconnecting via WiFi, syncing through live Cloudflare tunnel to FastAPI backend (`201 Created`), and persisting in PostgreSQL `farmers` table | ✅ PASS |
+
+---
 | 5 | AI / risk / advisory | Phase 2 + 3 ✅ |
 | 6 | Dashboard + GIS | Phase 2 |
 | 7 | WebSockets | Phase 2 + 6 |

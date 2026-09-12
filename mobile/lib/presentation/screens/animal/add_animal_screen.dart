@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import 'package:pashumauli/data/repositories/local_repositories.dart';
 import 'package:pashumauli/domain/entities/entities.dart';
 import 'package:pashumauli/presentation/widgets/common/common_widgets.dart';
+import 'package:pashumauli/services/sync_engine.dart';
 
 /// Screen 7 — Add Animal
 /// Fields: ear-tag, species, breed, sex, DOB, GPS location.
@@ -61,9 +62,6 @@ class _AddAnimalScreenState extends ConsumerState<AddAnimalScreen> {
         updatedAt: now,
       );
 
-      final repo = AnimalLocalRepository();
-      await repo.insert(animal);
-
       // Enqueue for sync
       final syncItem = SyncQueueItem(
         id: uuid.v4(),
@@ -83,7 +81,13 @@ class _AddAnimalScreenState extends ConsumerState<AddAnimalScreen> {
         createdAt: now,
         updatedAt: now,
       );
-      await SyncQueueRepository().enqueue(syncItem);
+
+      // Atomic write: local entity + sync queue in one transaction
+      final repo = AnimalLocalRepository();
+      await repo.insertWithSync(animal, syncItem);
+
+      // Trigger sync in background if online
+      ref.read(syncEngineProvider).sync();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

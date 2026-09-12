@@ -6,6 +6,7 @@ import 'package:pashumauli/data/repositories/local_repositories.dart';
 import 'package:pashumauli/domain/entities/entities.dart';
 import 'package:pashumauli/presentation/widgets/common/common_widgets.dart';
 import 'package:pashumauli/services/auth_notifier.dart';
+import 'package:pashumauli/services/sync_engine.dart';
 
 /// Screen 10 — Report Symptoms
 /// Captures: symptoms (checklist), notes, animal ID (optional), GPS.
@@ -63,8 +64,8 @@ class _ReportSymptomsScreenState
       const uuid = Uuid();
       final caseId = uuid.v4();
       final clientId = uuid.v4();
-      final authState = ref.read(authNotifierProvider);
-      final userId = authState is AuthAuthenticated ? authState.userId : null;
+      final auth = ref.read(authNotifierProvider);
+      final userId = auth is AuthAuthenticated ? auth.userId : 'LOCAL_USER';
 
       final healthCase = LocalHealthCase(
         id: caseId,
@@ -82,9 +83,6 @@ class _ReportSymptomsScreenState
         createdAt: now,
         updatedAt: now,
       );
-
-      final repo = HealthCaseLocalRepository();
-      await repo.insert(healthCase);
 
       // Enqueue for sync
       final syncItem = SyncQueueItem(
@@ -105,7 +103,13 @@ class _ReportSymptomsScreenState
         createdAt: now,
         updatedAt: now,
       );
-      await SyncQueueRepository().enqueue(syncItem);
+
+      // Atomic write: local entity + sync queue in one transaction
+      final repo = HealthCaseLocalRepository();
+      await repo.insertWithSync(healthCase, syncItem);
+
+      // Trigger sync in background if online
+      ref.read(syncEngineProvider).sync();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

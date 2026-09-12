@@ -6,11 +6,7 @@ import 'package:pashumauli/presentation/widgets/common/common_widgets.dart';
 import 'package:pashumauli/routing/app_router.dart';
 import 'package:pashumauli/services/auth_notifier.dart';
 import 'package:pashumauli/services/connectivity_service.dart';
-import 'package:pashumauli/data/repositories/local_repositories.dart';
-
-final pendingCountProvider = FutureProvider<int>((ref) async {
-  return SyncQueueRepository().countPending();
-});
+import 'package:pashumauli/services/sync_engine.dart';
 
 /// Screen 4 — Home
 /// Quick actions: Register Farmer, Add Animal, Report Case, AI Scan,
@@ -22,7 +18,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
     final connectStatus = ref.watch(currentConnectivityProvider);
-    final pendingAsync = ref.watch(pendingCountProvider);
+    final syncState = ref.watch(syncStateNotifierProvider);
 
     final userName = authState is AuthAuthenticated ? authState.name : '';
     final isOffline = connectStatus == ConnectivityStatus.offline;
@@ -92,7 +88,52 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ),
-          if (isOffline)
+          if (syncState.isSyncing)
+            SliverToBoxAdapter(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 10),
+                color: Colors.blue.shade100,
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Syncing local changes with server…',
+                        style: TextStyle(
+                          color: Colors.blue.shade900,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (syncState.pendingCount > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade800,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${syncState.pendingCount} left',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            )
+          else if (isOffline)
             SliverToBoxAdapter(
               child: Container(
                 width: double.infinity,
@@ -113,27 +154,22 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    pendingAsync.when(
-                      data: (count) => count > 0
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.orange,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '$count pending',
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                      loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
-                    ),
+                    if (syncState.pendingCount > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${syncState.pendingCount} pending',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
                   ],
                 ),
               ),

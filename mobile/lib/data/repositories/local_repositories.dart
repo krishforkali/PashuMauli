@@ -18,6 +18,21 @@ class FarmerLocalRepository {
     return farmer.id;
   }
 
+  /// Atomic write guarantee: writes local farmer AND enqueues sync operation
+  /// in the same SQLite transaction (OFFLINE_SYNC.md rule).
+  Future<String> insertWithSync(LocalFarmer farmer, SyncQueueItem syncItem) async {
+    final database = await _db.database;
+    await database.transaction((txn) async {
+      await txn.insert('local_farmers', _toMap(farmer));
+      await txn.insert(
+        'sync_queue',
+        SyncQueueRepository.itemToMap(syncItem),
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    });
+    return farmer.id;
+  }
+
   Future<LocalFarmer?> getById(String id) async {
     final db = await _db.database;
     final rows = await db.query('local_farmers',
@@ -98,6 +113,21 @@ class AnimalLocalRepository {
     final database = await _db.database;
     await database.transaction((txn) async {
       await txn.insert('local_animals', _toMap(animal));
+    });
+    return animal.id;
+  }
+
+  /// Atomic write guarantee: writes local animal AND enqueues sync operation
+  /// in the same SQLite transaction (OFFLINE_SYNC.md rule).
+  Future<String> insertWithSync(LocalAnimal animal, SyncQueueItem syncItem) async {
+    final database = await _db.database;
+    await database.transaction((txn) async {
+      await txn.insert('local_animals', _toMap(animal));
+      await txn.insert(
+        'sync_queue',
+        SyncQueueRepository.itemToMap(syncItem),
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
     });
     return animal.id;
   }
@@ -199,6 +229,21 @@ class HealthCaseLocalRepository {
     final database = await _db.database;
     await database.transaction((txn) async {
       await txn.insert('local_health_cases', _toMap(hc));
+    });
+    return hc.id;
+  }
+
+  /// Atomic write guarantee: writes local health case AND enqueues sync operation
+  /// in the same SQLite transaction (OFFLINE_SYNC.md rule).
+  Future<String> insertWithSync(LocalHealthCase hc, SyncQueueItem syncItem) async {
+    final database = await _db.database;
+    await database.transaction((txn) async {
+      await txn.insert('local_health_cases', _toMap(hc));
+      await txn.insert(
+        'sync_queue',
+        SyncQueueRepository.itemToMap(syncItem),
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
     });
     return hc.id;
   }
@@ -307,6 +352,33 @@ class VaccinationLocalRepository {
     return v.id;
   }
 
+  /// Atomic write guarantee: writes local vaccination AND enqueues sync operation
+  /// in the same SQLite transaction (OFFLINE_SYNC.md rule).
+  Future<String> insertWithSync(LocalVaccination v, SyncQueueItem syncItem) async {
+    final database = await _db.database;
+    await database.transaction((txn) async {
+      await txn.insert('local_vaccinations', _toMap(v));
+      await txn.insert(
+        'sync_queue',
+        SyncQueueRepository.itemToMap(syncItem),
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    });
+    return v.id;
+  }
+
+  Future<void> markSynced(String id) async {
+    final database = await _db.database;
+    await database.transaction((txn) async {
+      await txn.update(
+        'local_vaccinations',
+        {'synced': 1},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    });
+  }
+
   Future<List<LocalVaccination>> getByAnimal(String animalId) async {
     final db = await _db.database;
     final rows = await db.query('local_vaccinations',
@@ -410,7 +482,45 @@ class SyncQueueRepository {
     return (result.first['c'] as int?) ?? 0;
   }
 
-  String _statusToString(SyncStatus s) {
+  Future<int> countSynced() async {
+    final db = await _db.database;
+    final result = await db.rawQuery(
+        "SELECT COUNT(*) as c FROM sync_queue WHERE status = 'SYNCED'");
+    return (result.first['c'] as int?) ?? 0;
+  }
+
+  Future<int> countFailed() async {
+    final db = await _db.database;
+    final result = await db.rawQuery(
+        "SELECT COUNT(*) as c FROM sync_queue WHERE status = 'FAILED'");
+    return (result.first['c'] as int?) ?? 0;
+  }
+
+  Future<void> markSynced(String id) async {
+    await updateStatus(id, SyncStatus.synced);
+  }
+
+  Future<void> markFailed(String id, String error) async {
+    await updateStatus(id, SyncStatus.failed, error: error);
+  }
+
+  Future<void> resetFailedToPending(String id) async {
+    final database = await _db.database;
+    await database.transaction((txn) async {
+      await txn.update(
+        'sync_queue',
+        {
+          'status': 'PENDING',
+          'last_error': null,
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    });
+  }
+
+  static String statusToString(SyncStatus s) {
     switch (s) {
       case SyncStatus.pending:
         return 'PENDING';
@@ -423,7 +533,9 @@ class SyncQueueRepository {
     }
   }
 
-  SyncStatus _statusFromString(String s) {
+  String _statusToString(SyncStatus s) => statusToString(s);
+
+  static SyncStatus statusFromString(String s) {
     switch (s) {
       case 'SYNCING':
         return SyncStatus.syncing;
@@ -436,19 +548,23 @@ class SyncQueueRepository {
     }
   }
 
-  Map<String, dynamic> _toMap(SyncQueueItem i) => {
+  SyncStatus _statusFromString(String s) => statusFromString(s);
+
+  static Map<String, dynamic> itemToMap(SyncQueueItem i) => {
         'id': i.id,
         'client_id': i.clientId,
         'entity_type': i.entityType,
         'entity_id': i.entityId,
         'operation': i.operation,
         'payload': jsonEncode(i.payload),
-        'status': _statusToString(i.status),
+        'status': statusToString(i.status),
         'attempt_count': i.attemptCount,
         'last_error': i.lastError,
         'created_at': i.createdAt.toIso8601String(),
         'updated_at': i.updatedAt.toIso8601String(),
       };
+
+  Map<String, dynamic> _toMap(SyncQueueItem i) => itemToMap(i);
 
   SyncQueueItem _fromMap(Map<String, dynamic> m) => SyncQueueItem(
         id: m['id'] as String,

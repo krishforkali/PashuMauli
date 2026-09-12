@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pashumauli/data/repositories/local_repositories.dart';
 import 'package:pashumauli/domain/entities/entities.dart';
 import 'package:pashumauli/presentation/widgets/common/common_widgets.dart';
+import 'package:pashumauli/services/sync_engine.dart';
 
 final syncQueueProvider =
     FutureProvider<List<SyncQueueItem>>((ref) async {
@@ -17,6 +18,7 @@ class OfflineQueueScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final queueAsync = ref.watch(syncQueueProvider);
+    final syncState = ref.watch(syncStateNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -25,7 +27,27 @@ class OfflineQueueScreen extends ConsumerWidget {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            icon: syncState.isSyncing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Icon(Icons.sync),
+            tooltip: 'Sync Now',
+            onPressed: syncState.isSyncing
+                ? null
+                : () async {
+                    await ref.read(syncEngineProvider).sync();
+                    ref.invalidate(syncQueueProvider);
+                  },
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh list',
             onPressed: () => ref.refresh(syncQueueProvider),
           ),
         ],
@@ -49,16 +71,26 @@ class OfflineQueueScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _SectionHeader(
-                  label: 'Pending (${pending.length})',
-                  color: Colors.orange),
-              ...pending.map((i) => _QueueTile(item: i)),
+              if (pending.isNotEmpty) ...[
+                _SectionHeader(
+                    label: 'Pending (${pending.length})',
+                    color: Colors.orange),
+                ...pending.map((i) => _QueueTile(item: i)),
+              ],
               if (failed.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 _SectionHeader(
                     label: 'Failed (${failed.length})',
                     color: Colors.red),
-                ...failed.map((i) => _QueueTile(item: i)),
+                ...failed.map((i) => _QueueTile(
+                      item: i,
+                      onRetry: () async {
+                        await ref
+                            .read(syncStateNotifierProvider.notifier)
+                            .retryItem(i.id);
+                        ref.invalidate(syncQueueProvider);
+                      },
+                    )),
               ],
               if (synced.isNotEmpty) ...[
                 const SizedBox(height: 8),
@@ -99,7 +131,8 @@ class _SectionHeader extends StatelessWidget {
 
 class _QueueTile extends StatelessWidget {
   final SyncQueueItem item;
-  const _QueueTile({required this.item});
+  final VoidCallback? onRetry;
+  const _QueueTile({required this.item, this.onRetry});
 
   Color get _statusColor {
     switch (item.status) {
@@ -138,7 +171,7 @@ class _QueueTile extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('ID: ${item.entityId.substring(0, 8)}…'),
+            Text('ID: ${item.entityId.substring(0, item.entityId.length > 8 ? 8 : item.entityId.length)}…'),
             Text(
                 '${item.createdAt.day}/${item.createdAt.month}/${item.createdAt.year} • Attempts: ${item.attemptCount}'),
             if (item.lastError != null)
@@ -146,20 +179,31 @@ class _QueueTile extends StatelessWidget {
                   style: const TextStyle(color: Colors.red, fontSize: 11)),
           ],
         ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: _statusColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _statusColor.withValues(alpha: 0.4)),
-          ),
-          child: Text(
-            item.status.name.toUpperCase(),
-            style: TextStyle(
-                fontSize: 10,
-                color: _statusColor,
-                fontWeight: FontWeight.bold),
-          ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (item.status == SyncStatus.failed && onRetry != null)
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.red),
+                tooltip: 'Retry item',
+                onPressed: onRetry,
+              ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: _statusColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _statusColor.withValues(alpha: 0.4)),
+              ),
+              child: Text(
+                item.status.name.toUpperCase(),
+                style: TextStyle(
+                    fontSize: 10,
+                    color: _statusColor,
+                    fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
         ),
         isThreeLine: true,
       ),

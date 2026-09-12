@@ -5,6 +5,7 @@ import 'package:pashumauli/data/repositories/local_repositories.dart';
 import 'package:pashumauli/domain/entities/entities.dart';
 import 'package:pashumauli/presentation/widgets/common/common_widgets.dart';
 import 'package:pashumauli/routing/app_router.dart';
+import 'package:pashumauli/services/sync_engine.dart';
 
 final farmerProvider =
     FutureProvider.family<LocalFarmer?, String>((ref, id) async {
@@ -229,10 +230,6 @@ class _AddFarmerScreenState extends ConsumerState<_AddFarmerScreen> {
         updatedAt: now,
       );
 
-      final repo = FarmerLocalRepository();
-      await repo.insert(farmer);
-
-      // Also enqueue for sync
       final syncItem = SyncQueueItem(
         id: _generateUuid(),
         clientId: farmer.id,
@@ -248,12 +245,17 @@ class _AddFarmerScreenState extends ConsumerState<_AddFarmerScreen> {
         createdAt: now,
         updatedAt: now,
       );
-      await SyncQueueRepository().enqueue(syncItem);
+
+      final repo = FarmerLocalRepository();
+      await repo.insertWithSync(farmer, syncItem);
+
+      // Trigger background sync cycle
+      ref.read(syncEngineProvider).sync();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Farmer saved locally'),
+            content: Text('Farmer saved locally — sync queued'),
             backgroundColor: Colors.green,
           ),
         );

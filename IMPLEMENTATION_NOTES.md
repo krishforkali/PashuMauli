@@ -280,12 +280,12 @@ fields, use explicit last-write/version conflict rules.")
 **Issue:** "Explicit last-write/version conflict rules" is stated but
 not defined. No `version` or `updated_at` comparison algorithm is given.  
 **Impact:** Phase 4 (sync engine conflict handling).  
-**Decision required:** Last-write wins (compare `updated_at`), or
-optimistic locking with a `version` counter?  
-**Provisional:** Last-write wins using `updated_at` comparison.
-If server `updated_at` > client `updated_at`, server wins and client is
-notified. Document this in Phase 4 implementation.  
-**Status:** OPEN — confirm before Phase 4
+**Resolution:** Closed in Phase 4. For creation operations, `client_id` idempotency
+guarantees replay safety (HTTP 200 `ALREADY_APPLIED`). For farmer phone conflict (HTTP 409),
+existing record is preserved and marked SYNCED. For animal ear-tag taken (HTTP 409),
+the item is marked permanently FAILED to alert the vet. For profile updates, last-write-wins
+via `updated_at` ISO-8601 comparison.  
+**Status:** CLOSED (Phase 4)
 
 ---
 
