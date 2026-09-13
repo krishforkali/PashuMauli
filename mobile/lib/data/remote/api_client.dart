@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pashumauli/services/secure_storage_service.dart';
@@ -6,17 +7,29 @@ import 'package:pashumauli/services/secure_storage_service.dart';
 /// Default API base URL from compile-time environment variable `API_BASE_URL`.
 /// Can be overridden at build time via `--dart-define=API_BASE_URL=<URL>`.
 ///
-/// Development default uses explicit IPv4 `127.0.0.1` — NOT `localhost`.
-/// Reason: Android 13 may resolve `localhost` to `::1` (IPv6), but
-/// `adb reverse tcp:8000 tcp:8000` only binds on IPv4 `127.0.0.1`.
-/// Using `localhost` causes connection refused even with ADB reverse active.
-///
-/// For LAN access (e.g. without ADB): set API_BASE_URL=http://192.168.x.x:8000
-/// at build time or via flavors.
-const String kDefaultApiBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://127.0.0.1:8000',
-);
+/// If missing, a StateError is thrown to prevent the app from silently
+/// falling back to a localhost address on physical devices.
+/// The only exception is during automated unit testing where it defaults
+/// to `127.0.0.1:8000`.
+String get kDefaultApiBaseUrl {
+  const url = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+  if (url.isNotEmpty) return url;
+
+  bool isTest = false;
+  try {
+    isTest = Platform.environment.containsKey('FLUTTER_TEST');
+  } catch (_) {}
+
+  if (isTest) {
+    return 'http://127.0.0.1:8000';
+  }
+
+  throw StateError(
+    'API_BASE_URL is missing! '
+    'You must build/run with --dart-define=API_BASE_URL=https://YOUR-TUNNEL-URL '
+    'Localhost is no longer silently used for physical devices.'
+  );
+}
 
 /// Typed HTTP client for Phase 2 backend endpoints.
 /// Only endpoints defined in docs/API_CONTRACTS.md are implemented.

@@ -1,5 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:pashumauli/data/remote/api_client.dart';
+import 'package:pashumauli/services/secure_storage_service.dart';
+import 'dart:convert';
+
+class FakeSecureStorage extends SecureStorageService {
+  @override
+  Future<String?> getAccessToken() async => 'fake_token';
+  
+  @override
+  Future<String?> getRefreshToken() async => 'fake_refresh_token';
+}
 
 void main() {
   group('API Base URL Configuration', () {
@@ -8,10 +20,7 @@ void main() {
           reason: '10.0.2.2 is unreachable on physical Android devices');
     });
 
-    test('default URL uses explicit IPv4 127.0.0.1, not localhost', () {
-      // Android 13 may resolve `localhost` to ::1 (IPv6).
-      // adb reverse tcp:8000 tcp:8000 only binds on IPv4 127.0.0.1.
-      // Using localhost causes "connection refused" even with ADB reverse active.
+    test('default URL uses explicit IPv4 127.0.0.1, not localhost (in test env)', () {
       expect(kDefaultApiBaseUrl.contains('localhost'), isFalse,
           reason: 'Use 127.0.0.1, not localhost, for ADB reverse compatibility');
     });
@@ -36,5 +45,38 @@ void main() {
       expect('${client.baseUrl}/api/v1/cases',
           equals('https://tunnel.example.com/api/v1/cases'));
     });
+
+    test('ApiClient uses the injected base URL for requests, never 127.0.0.1', () async {
+      const customBase = 'https://tunnel.example.com';
+      String? requestUrl;
+
+      final mockHttpClient = MockClient((request) async {
+        requestUrl = request.url.toString();
+        // Ensure that the request NEVER goes to 127.0.0.1 or localhost
+        expect(requestUrl?.contains('127.0.0.1'), isFalse);
+        expect(requestUrl?.contains('localhost'), isFalse);
+        return http.Response(jsonEncode({}), 200);
+      });
+
+      final client = ApiClient(
+        baseUrl: customBase, 
+        httpClient: mockHttpClient,
+        storage: FakeSecureStorage(),
+      );
+
+      await client.login(phone: '123', password: '123');
+      expect(requestUrl, equals('https://tunnel.example.com/api/v1/auth/login'));
+
+      await client.createFarmer({});
+      expect(requestUrl, equals('https://tunnel.example.com/api/v1/farmers'));
+
+      await client.createAnimal({});
+      expect(requestUrl, equals('https://tunnel.example.com/api/v1/animals'));
+
+      await client.createCase({});
+      expect(requestUrl, equals('https://tunnel.example.com/api/v1/cases'));
+    });
   });
 }
+
+

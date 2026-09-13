@@ -236,7 +236,7 @@ void main() {
   // ─── API URL ──────────────────────────────────────────────────────────────
 
   group('API URL — physical device compatibility', () {
-    test('default URL uses 127.0.0.1, not localhost', () {
+    test('default URL uses 127.0.0.1, not localhost (in test env)', () {
       // localhost on Android 13 may resolve to ::1 (IPv6), breaking ADB reverse.
       expect(kDefaultApiBaseUrl.contains('localhost'), isFalse,
           reason:
