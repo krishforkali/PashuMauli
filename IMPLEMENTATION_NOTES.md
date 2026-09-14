@@ -362,4 +362,29 @@ mobile); switch to signed-URL in a later phase if performance requires.
 - `curl -i -X POST https://<tunnel>/api/v1/farmers` -> HTTP 201 Created with JSON payload response.
 **Status:** CLOSED & VERIFIED
 
+---
+
+## IN-22 Version-A Demo IVR Gather -> Passthru Architecture
+
+**Source:** Phase 8 Demo IVR implementation requirement.  
+**Finding:** Exotel/Telephony IVR platforms collect user DTMF input via a **Gather** applet and forward the `Digits` value to a synchronous **Passthru** backend webhook (`Make Passthru Async = OFF`).  
+**Implementation:**
+1. Created `DemoTelephonyProvider` in `app/services/telephony.py` implementing `IVRCallSession` state machine (`WELCOME` → `LANGUAGE` → `FARMER_ID` → `ANIMAL_ID` → `SYMPTOMS_1..5` → `CONFIRMATION` → `COMPLETED`).
+2. Implemented 5 standard symptom prompts in trilingual audio/text (`mr`, `hi`, `en`).
+3. Created multi-step endpoints in `app/api/v1/routes/demo_ivr.py`:
+   - `POST /api/v1/demo/ivr/call/start`: Initiates session and returns initial Gather WELCOME prompt.
+   - `POST /api/v1/demo/ivr/call/step`: Synchronous Passthru webhook processing `{call_id, digits}` and returning next step prompt.
+   - `POST /api/v1/demo/ivr/incoming`: High-level full call simulator executing the complete sequence in a single request.
+4. Upon confirmation (`1` = Confirm), the pipeline:
+   - Flushes/resolves `Farmer` & `Animal`.
+   - Creates a real `HealthCase` (`source="IVR"`).
+   - Writes an `AuditLog` entry (`action="IVR_CASE_CREATED"`).
+   - Publishes `IVR_RECEIVED` and `CASE_CREATED` events to Redis `event_bus`, fanning out to Next.js dashboard WebSocket clients.
+**Verification:**
+- 49/49 pytest tests passing (`tests/test_demo_ivr.py`).
+- Live Cloudflare Quick Tunnel multi-step call simulation verified end-to-end.
+- PostgreSQL database insertion verified (`health_cases` table).
+**Status:** CLOSED & VERIFIED
+
+
 

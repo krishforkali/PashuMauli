@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://127.0.0.1:6379/0"
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000"
     PUBLIC_BASE_URL: str = "http://localhost:8000"
-    DEMO_MODE: bool = False
+    DEMO_MODE: bool = True
 
     # Authentication
     JWT_SECRET: str = "replace-with-local-secret"

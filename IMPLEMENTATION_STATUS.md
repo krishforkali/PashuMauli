@@ -22,12 +22,12 @@ Phases 6, 7, and 8 implementation is **IN PROGRESS**. Building the Next.js Dashb
 
 | Sub-phase | Component | Status |
 |---|---|---|
-| 6A | Next.js Dashboard App scaffolded | 🔄 IN PROGRESS |
-| 6B | Live Metrics & Activity Pages | ⏳ PENDING |
-| 6C | Map Component (Leaflet) | ⏳ PENDING |
-| 7A | Redis Pub/Sub Event Bus | ⏳ PENDING |
-| 7B | FastAPI WebSocket Manager & Auth | ⏳ PENDING |
-| 8A | Demo IVR Route & Integration | ⏳ PENDING |
+| 6A | Next.js Dashboard App scaffolded | ✅ COMPLETE |
+| 6B | Live Metrics & Activity Pages | ✅ COMPLETE |
+| 6C | Map Component (Leaflet) | ✅ COMPLETE |
+| 7A | Redis Pub/Sub Event Bus | ✅ COMPLETE |
+| 7B | FastAPI WebSocket Manager & Auth | ✅ COMPLETE |
+| 8A | Demo IVR Route & Integration (Version-A Gather → Passthru) | ✅ COMPLETE |
 
 ---
 
@@ -41,9 +41,9 @@ Phases 6, 7, and 8 implementation is **IN PROGRESS**. Building the Next.js Dashb
 | 3 | Mobile foundation | Gate 3 verification: 56/56 tests pass, `flutter analyze` 0 issues, 17 screens, SQLite persistence, Physical Android Device (CPH2213) live backend integration | ✅ COMPLETE & PASSED |
 | 4 | Offline sync engine | Gate 4 verification: 66/66 tests pass, `flutter analyze` 0 issues, atomic transactions, FIFO replay, idempotency, retry/backoff, token refresh, physical device CPH2213 offline->online sync verified into PostgreSQL | ✅ COMPLETE & PASSED |
 | 5 | AI / risk / advisory | Network fix, risk engine, safety validator, advisory LLM screen, 99/99 tests, 0 analyze issues | ✅ COMPLETE |
-| 6 | Dashboard + GIS | Next.js Dashboard | 🔄 IN PROGRESS |
-| 7 | WebSockets | Redis Pub/Sub Event Bus | 🔄 IN PROGRESS |
-| 8 | IVR | Demo IVR Route | 🔄 IN PROGRESS |
+| 6 | Dashboard + GIS | Next.js Dashboard + Leaflet map + live event feed | ✅ COMPLETE |
+| 7 | WebSockets | Redis Pub/Sub Event Bus + WebSocket fan-out manager | ✅ COMPLETE |
+| 8 | IVR | Version-A Demo IVR Gather → Passthru 7-step state machine + 5-symptom questionnaire | ✅ COMPLETE |
 
 ---
 
