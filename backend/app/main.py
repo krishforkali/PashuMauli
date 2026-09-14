@@ -16,7 +16,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import app.models as _models  # noqa: F401  Ensure all SQLAlchemy models are registered
 from app.api.v1.router import api_v1_router
-from app.api.v1.ws import redis_listener
+from app.api.v1.routes.ws import redis_listener
 from app.core.config import get_settings
 from app.core.middleware import RequestIdAndLoggingMiddleware
 from app.db.base import async_engine

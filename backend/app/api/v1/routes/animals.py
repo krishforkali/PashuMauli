@@ -105,8 +105,26 @@ async def create_animal(
             detail={"error": {"code": "EAR_TAG_TAKEN", "message": "ear_tag_id already exists.", "details": {}}},
         )
 
-    # Phase 7 stub: ANIMAL_REGISTERED WebSocket event would be emitted here.
+    from app.models.audit_log import AuditLog
+    from app.services.event_bus import event_bus
+    
+    audit_log = AuditLog(
+        actor_user_id=current_user.id,
+        action="ANIMAL_CREATED",
+        entity_type="ANIMAL",
+        entity_id=animal.id,
+        meta={"species": payload.species}
+    )
+    db.add(audit_log)
+    await db.commit()
+
     logger.info("animal_registered", extra={"animal_id": str(animal.id)})
+    await event_bus.publish(
+        event_type="ANIMAL_CREATED",
+        payload=_to_out(animal).model_dump(mode="json"),
+        actor={"user_id": str(current_user.id), "role": current_user.role},
+        source="SYSTEM"
+    )
     return _to_out(animal)
 
 
@@ -180,6 +198,7 @@ async def update_animal(
     animal_id: str,
     payload: AnimalUpdate,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> AnimalOut:
     """Partial update of an animal record."""
     try:
@@ -206,12 +225,30 @@ async def update_animal(
     try:
         for field, value in update_data.items():
             setattr(animal, field, value)
-        await db.flush()
+            
+        from app.models.audit_log import AuditLog
+        from app.services.event_bus import event_bus
+        audit_log = AuditLog(
+            actor_user_id=current_user.id,
+            action="ANIMAL_UPDATED",
+            entity_type="ANIMAL",
+            entity_id=animal.id,
+            meta={"changes": list(update_data.keys())}
+        )
+        db.add(audit_log)
+        await db.commit()
     except IntegrityError:
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={"error": {"code": "EAR_TAG_TAKEN", "message": "ear_tag_id already exists.", "details": {}}},
         )
+        
+    await event_bus.publish(
+        event_type="ANIMAL_UPDATED",
+        payload=_to_out(animal).model_dump(mode="json"),
+        actor={"user_id": str(current_user.id), "role": current_user.role},
+        source="SYSTEM"
+    )
 
     return _to_out(animal)

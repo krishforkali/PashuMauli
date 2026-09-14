@@ -41,6 +41,12 @@ _PRIVILEGED_ROLES = {
     UserRole.SYSTEM_ADMIN,
 }
 
+def _mask_phone(phone: str) -> str:
+    """Mask all but last 4 digits: e.g. +91987654xxxx → xxxxxxxx3210."""
+    if len(phone) <= 4:
+        return "****"
+    return "*" * (len(phone) - 4) + phone[-4:]
+
 
 async def _audit(
     db: AsyncSession,
@@ -136,6 +142,20 @@ async def login(
     user = result.scalar_one_or_none()
 
     if user is None or not verify_password(payload.password, user.password_hash):
+        await _audit(
+            db,
+            action="USER_LOGIN_FAILED",
+            actor_id=user.id if user else None,
+            entity_type="user",
+            entity_id=user.id if user else None,
+            metadata={"phone": _mask_phone(payload.phone)}
+        )
+        await db.commit()
+        await event_bus.publish(
+            event_type="USER_LOGIN_FAILED",
+            payload={"phone": _mask_phone(payload.phone)},
+            source="SYSTEM"
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"error": {"code": "INVALID_CREDENTIALS", "message": "Phone or password incorrect.", "details": {}}},

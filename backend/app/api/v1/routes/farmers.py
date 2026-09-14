@@ -118,8 +118,26 @@ async def create_farmer(
             detail={"error": {"code": "CONFLICT", "message": "Farmer with that data already exists.", "details": {}}},
         )
 
-    # Phase 7 stub: FARMER_REGISTERED WebSocket event would be emitted here.
+    from app.models.audit_log import AuditLog
+    from app.services.event_bus import event_bus
+    
+    audit_log = AuditLog(
+        actor_user_id=current_user.id,
+        action="FARMER_CREATED",
+        entity_type="FARMER",
+        entity_id=farmer.id,
+        meta={"phone": _mask_phone(farmer.phone)}
+    )
+    db.add(audit_log)
+    await db.commit()
+
     logger.info("farmer_registered", extra={"farmer_id": str(farmer.id)})
+    await event_bus.publish(
+        event_type="FARMER_CREATED",
+        payload=_farmer_to_out(farmer).model_dump(mode="json"),
+        actor={"user_id": str(current_user.id), "role": current_user.role},
+        source="SYSTEM"
+    )
     return _farmer_to_out(farmer)
 
 
@@ -185,6 +203,7 @@ async def update_farmer(
     farmer_id: str,
     payload: FarmerUpdate,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> FarmerOut:
     """Partial update of a farmer record."""
     import uuid as _uuid
@@ -213,5 +232,23 @@ async def update_farmer(
     for field, value in update_data.items():
         setattr(farmer, field, value)
 
-    await db.flush()
+    from app.models.audit_log import AuditLog
+    from app.services.event_bus import event_bus
+    audit_log = AuditLog(
+        actor_user_id=current_user.id,
+        action="FARMER_UPDATED",
+        entity_type="FARMER",
+        entity_id=farmer.id,
+        meta={"changes": list(update_data.keys())}
+    )
+    db.add(audit_log)
+    await db.commit()
+
+    await event_bus.publish(
+        event_type="FARMER_UPDATED",
+        payload=_farmer_to_out(farmer).model_dump(mode="json"),
+        actor={"user_id": str(current_user.id), "role": current_user.role},
+        source="SYSTEM"
+    )
+
     return _farmer_to_out(farmer)

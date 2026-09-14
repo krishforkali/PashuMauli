@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Activity, AlertTriangle, PhoneCall, ShieldAlert, CheckCircle2, Server, LogIn } from "lucide-react";
+import { apiConfig } from "../config/api";
 
 // Dynamic import for Leaflet map to avoid SSR issues
 const MapComponent = dynamic(() => import("./Map"), {
@@ -10,8 +11,8 @@ const MapComponent = dynamic(() => import("./Map"), {
   loading: () => <div className="h-full w-full bg-slate-100 animate-pulse rounded-xl flex items-center justify-center">Loading Map...</div>
 });
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
-const WS_BASE = "ws://127.0.0.1:8000";
+const API_BASE = apiConfig.API_BASE_URL;
+const WS_BASE = apiConfig.WS_BASE_URL;
 
 export default function Dashboard() {
   const [token, setToken] = useState<string | null>(null);
@@ -80,7 +81,7 @@ export default function Dashboard() {
           setCases(prev => [msg.payload, ...prev]);
         } else if (msg.event_type === "CASE_UPDATED") {
           setCases(prev => prev.map(c => c.id === msg.payload.id ? msg.payload : c));
-        } else if (msg.event_type === "AI_RESULT_CREATED") {
+        } else if (msg.event_type === "AI_RESULT_AVAILABLE") {
           // Update the specific case with AI result top_prediction
           setCases(prev => prev.map(c => {
             if (c.id === msg.payload.case_id) {
@@ -237,7 +238,7 @@ export default function Dashboard() {
                     <div className="text-slate-700 truncate">
                       {ev.event_type === "IVR_RECEIVED" && `Call from ${ev.payload.caller_phone}`}
                       {ev.event_type === "CASE_CREATED" && `New case: ${ev.payload.suspected_disease || 'Unknown'}`}
-                      {ev.event_type === "AI_RESULT_CREATED" && `AI predicts: ${ev.payload.top_prediction}`}
+                      {ev.event_type === "AI_RESULT_AVAILABLE" && `AI predicts: ${ev.payload.top_prediction}`}
                       {ev.event_type === "CASE_UPDATED" && `Case updated`}
                     </div>
                   </div>

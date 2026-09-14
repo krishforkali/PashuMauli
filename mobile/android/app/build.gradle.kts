@@ -11,7 +11,7 @@ dependencies {
 
 android {
     namespace = "com.pashumauli.pashumauli"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

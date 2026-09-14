@@ -35,17 +35,25 @@ class RedisEventBus:
             logger.warning("Event bus not connected. Cannot publish event.")
             return
 
-        envelope = {
-            "event_type": event_type,
-            "payload": payload,
-        }
-        if actor:
-            envelope["actor"] = actor
-        if source:
-            envelope["source"] = source
+        from app.schemas.events import EventEnvelope, EventType
+        
+        # Enforce valid event types
+        try:
+            e_type = EventType(event_type)
+        except ValueError:
+            logger.warning(f"Invalid event type: {event_type}")
+            return
+
+        envelope = EventEnvelope(
+            event_type=e_type,
+            payload=payload,
+            actor=actor,
+            source=source or "SYSTEM"
+        )
             
         try:
-            message = json.dumps(envelope)
+            # We must dump using Pydantic's JSON serialization to handle datetimes and UUIDs
+            message = envelope.model_dump_json()
             await self.redis.publish(self.channel_name, message)
             logger.debug(f"Published event {event_type} to Redis.")
         except Exception as e:

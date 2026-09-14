@@ -136,6 +136,15 @@ async def create_case(
         )
 
     # Phase 7: Explicit commit before publishing event
+    from app.models.audit_log import AuditLog
+    audit_log = AuditLog(
+        actor_user_id=current_user.id,
+        action="CASE_CREATED",
+        entity_type="HEALTH_CASE",
+        entity_id=case.id,
+        meta={"source": payload.source}
+    )
+    db.add(audit_log)
     await db.commit()
 
     logger.info("health_case_created", extra={"case_id": str(case.id), "source": case.source})
@@ -250,6 +259,15 @@ async def patch_case(
     for field, value in update_data.items():
         setattr(case, field, value)
 
+    from app.models.audit_log import AuditLog
+    audit_log = AuditLog(
+        actor_user_id=current_user.id,
+        action="CASE_UPDATED",
+        entity_type="HEALTH_CASE",
+        entity_id=case.id,
+        meta={"changes": list(update_data.keys())}
+    )
+    db.add(audit_log)
     await db.commit()
     
     await event_bus.publish(
@@ -309,10 +327,19 @@ async def attach_ai_result(
         case.confidence = payload.confidence
 
     # Phase 5 stub: risk engine call
+    from app.models.audit_log import AuditLog
+    audit_log = AuditLog(
+        actor_user_id=current_user.id,
+        action="AI_RESULT_CREATED",
+        entity_type="HEALTH_CASE",
+        entity_id=case.id,
+        meta={"model_version": payload.model_version}
+    )
+    db.add(audit_log)
     await db.commit()
     
     await event_bus.publish(
-        event_type="AI_RESULT_CREATED",
+        event_type="AI_RESULT_AVAILABLE",
         payload={
             "case_id": str(cid),
             "model_version": payload.model_version,

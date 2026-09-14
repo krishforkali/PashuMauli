@@ -64,13 +64,13 @@ async def simulate_incoming_ivr(
         await db.flush()
 
     # 2. Lookup or create animal by ear tag
-    result = await db.execute(select(Animal).where(Animal.ear_tag == payload.animal_id))
+    result = await db.execute(select(Animal).where(Animal.ear_tag_id == payload.animal_id))
     animal = result.scalar_one_or_none()
     
     if not animal:
         animal = Animal(
             farmer_id=farmer.id,
-            ear_tag=payload.animal_id,
+            ear_tag_id=payload.animal_id,
             species="UNKNOWN",  # from IVR we might not know
             breed="UNKNOWN",
         )
@@ -92,7 +92,7 @@ async def simulate_incoming_ivr(
     audit = AuditLog(
         actor_user_id=None,  # System/IVR action
         action="IVR_CASE_CREATED",
-        entity_type="health_case",
+        entity_type="HEALTH_CASE",
         entity_id=case.id,
         meta={"caller_phone": payload.caller_phone, "language": payload.language}
     )
