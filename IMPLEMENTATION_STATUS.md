@@ -5,6 +5,12 @@
 
 ---
 
+### Infrastructure Status
+
+- **Windows → WSL2 → Docker Networking**: **RESOLVED & VERIFIED**. Running `cloudflared` inside WSL targets `http://127.0.0.1:8000` directly, bypassing Windows Hyper-V firewall rules and dynamic WSL IP changes (`172.18.x.x`). Verified with `HTTP 200 OK` on public HTTPS tunnel `https://<subdomain>.trycloudflare.com/health` and `/api/v1/cases`.
+
+---
+
 ## Current Phase
 
 **Phases 6, 7, 8 — Dashboard, WebSockets, IVR (In Progress)**

@@ -334,6 +334,14 @@ mobile); switch to signed-URL in a later phase if performance requires.
 
 ---
 
-*Last updated: Phase 6/7/8 — Dashboard and Real-time Architecture*  
-*No issues are silently resolved. Each OPEN item must be explicitly closed
-before the phase that depends on it begins.*
+## IN-20 Windows -> WSL2 -> Docker Networking Infrastructure
+
+**Source:** Physical device & Windows host connectivity troubleshooting.
+**Finding:** Docker Engine runs inside WSL2 (`Ubuntu`), where port 8000 is bound to `0.0.0.0:8000` inside the Linux network namespace. Windows `127.0.0.1:8000` does not automatically proxy to WSL2 without elevated `netsh portproxy` rules, and the WSL2 adapter IP (`172.18.x.x`) is dynamic across WSL/Windows restarts and subject to Windows Hyper-V Firewall filtering.
+**Fix applied:** Configured Cloudflare Quick Tunnel (`cloudflared`) to run directly inside WSL targeting `http://127.0.0.1:8000`. This bypasses Windows firewall isolation and dynamic WSL host IP shifts.
+**Verification:**
+- From WSL: `curl -s http://127.0.0.1:8000/health` -> `200 OK` (`{"status":"ok","app":"PashuMauli"}`)
+- From Public HTTPS Tunnel: `curl.exe -s https://<trycloudflare-subdomain>/health` -> `200 OK` (`{"status":"ok","app":"PashuMauli"}`)
+- From Public API Route: `curl.exe -s https://<trycloudflare-subdomain>/api/v1/cases` -> `401 Unauthorized` (`Not authenticated`)
+**Status:** CLOSED & VERIFIED
+
