@@ -1,5 +1,4 @@
 """FastAPI application entry point for PashuMauli platform."""
-import logging
 import asyncio
 import logging
 import sys
@@ -88,6 +87,21 @@ async def validation_exception_handler(_: Request, exc: RequestValidationError) 
                 "code": "VALIDATION_ERROR",
                 "message": "Validation failed.",
                 "details": exc.errors(),
+            }
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(_: Request, exc: Exception) -> JSONResponse:
+    logger.exception(f"Unhandled server error: {exc}")
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "An unexpected internal server error occurred.",
+                "details": {"error": str(exc)},
             }
         },
     )

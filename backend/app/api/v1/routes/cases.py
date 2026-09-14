@@ -15,7 +15,6 @@ from app.core.deps import get_current_user
 from app.db.base import get_db
 from app.models.health_case import AIResult, HealthCase
 from app.models.user import User
-from app.services.event_bus import event_bus
 from app.schemas.farmer import LocationIn
 from app.schemas.health_case import (
     VALID_SOURCES,
@@ -27,6 +26,7 @@ from app.schemas.health_case import (
     HealthCasePatch,
     PaginatedCases,
 )
+from app.services.event_bus import event_bus
 
 logger = logging.getLogger("pashumauli.cases")
 
@@ -226,7 +226,7 @@ async def patch_case(
     case_id: str,
     payload: HealthCasePatch,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> HealthCaseOut:
     """Partial update of a health case (status, disease, risk_level, etc.)."""
     try:
@@ -269,7 +269,7 @@ async def patch_case(
     )
     db.add(audit_log)
     await db.commit()
-    
+
     await event_bus.publish(
         event_type="CASE_UPDATED",
         payload=_to_out(case).model_dump(mode="json"),
@@ -284,7 +284,7 @@ async def attach_ai_result(
     case_id: str,
     payload: AIResultCreate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> AIResultOut:
     """Attach an AI inference result to a health case (stub; full logic in Phase 5).
 
@@ -337,7 +337,7 @@ async def attach_ai_result(
     )
     db.add(audit_log)
     await db.commit()
-    
+
     await event_bus.publish(
         event_type="AI_RESULT_AVAILABLE",
         payload={

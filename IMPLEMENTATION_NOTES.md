@@ -345,3 +345,21 @@ mobile); switch to signed-URL in a later phase if performance requires.
 - From Public API Route: `curl.exe -s https://<trycloudflare-subdomain>/api/v1/cases` -> `401 Unauthorized` (`Not authenticated`)
 **Status:** CLOSED & VERIFIED
 
+---
+
+## IN-21 Backend HTTP 500 Unhandled Exception on Farmer Create — Root Cause & Resolution
+
+**Source:** CPH2213 SyncEngine offline queue sync replay failure (`FARMER • CREATE`).  
+**Finding:** Physical device offline queue replay failed with `PARSE_ERROR: FormatException: Unexpected character (at character 1) Internal Server Error ^`. Backend FastAPI logs showed `NameError: name 'current_user' is not defined` at `app/api/v1/routes/farmers.py:125`. The route parameter was defined as `_: User = Depends(get_current_user)`, but lines 125 and 138 accessed `current_user.id` during `AuditLog` creation and `event_bus.publish`. Uncaught Python exceptions produced a non-JSON plain text `Internal Server Error` (HTTP 500) response, causing Flutter `ApiClient` to fail during JSON parsing.  
+**Fixes Applied:**
+1. Corrected route parameter in `app/api/v1/routes/farmers.py` to `current_user: User = Depends(get_current_user)`.
+2. Corrected matching occurrences in `app/api/v1/routes/animals.py` (`create_animal`) and `app/api/v1/routes/cases.py` (`patch_case`, `attach_ai_result`).
+3. Added a global uncaught exception handler in `app/main.py` (`@app.exception_handler(Exception)`) to guarantee all unhandled 500 exceptions return standard JSON error envelopes (`{"error": {"code": "INTERNAL_SERVER_ERROR", "message": "...", "details": {...}}}`) rather than plain text.
+4. Added regression tests in `backend/tests/test_farmers.py` (`test_create_farmer_audit_log_and_event_bus` and `test_create_farmer_duplicate_user_id_returns_json_error`).
+**Verification:**
+- `docker exec pashumauli_backend pytest tests` -> 46/46 passed.
+- `docker exec pashumauli_backend ruff check app tests` -> 0 lint errors.
+- `curl -i -X POST https://<tunnel>/api/v1/farmers` -> HTTP 201 Created with JSON payload response.
+**Status:** CLOSED & VERIFIED
+
+

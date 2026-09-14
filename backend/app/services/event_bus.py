@@ -1,5 +1,4 @@
 """Redis-backed Event Bus for real-time WebSocket communication."""
-import json
 import logging
 from typing import Any
 
@@ -11,7 +10,7 @@ logger = logging.getLogger("pashumauli.event_bus")
 
 class RedisEventBus:
     """Manages Redis connection and Pub/Sub functionality."""
-    
+
     def __init__(self):
         self.settings = get_settings()
         self.redis: Redis | None = None
@@ -36,7 +35,7 @@ class RedisEventBus:
             return
 
         from app.schemas.events import EventEnvelope, EventType
-        
+
         # Enforce valid event types
         try:
             e_type = EventType(event_type)
@@ -50,7 +49,7 @@ class RedisEventBus:
             actor=actor,
             source=source or "SYSTEM"
         )
-            
+
         try:
             # We must dump using Pydantic's JSON serialization to handle datetimes and UUIDs
             message = envelope.model_dump_json()
@@ -63,7 +62,7 @@ class RedisEventBus:
         """Return a Redis pubsub object subscribed to the main channel."""
         if self.redis is None:
             raise RuntimeError("Event bus not connected.")
-        
+
         pubsub = self.redis.pubsub()
         await pubsub.subscribe(self.channel_name)
         return pubsub

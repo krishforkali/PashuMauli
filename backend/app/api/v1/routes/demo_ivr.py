@@ -1,23 +1,21 @@
 """Demo IVR endpoint to simulate incoming telephony cases."""
 import logging
-import uuid
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.routes.cases import _loc_to_geo, _to_out
 from app.core.config import get_settings
 from app.db.base import get_db
 from app.models.animal import Animal
 from app.models.audit_log import AuditLog
 from app.models.farmer import Farmer
 from app.models.health_case import HealthCase
-from app.services.event_bus import event_bus
-from app.schemas.health_case import HealthCaseOut
-from app.api.v1.routes.cases import _to_out, _loc_to_geo
 from app.schemas.farmer import LocationIn
+from app.schemas.health_case import HealthCaseOut
+from app.services.event_bus import event_bus
 
 logger = logging.getLogger("pashumauli.demo_ivr")
 settings = get_settings()
@@ -40,7 +38,7 @@ async def simulate_incoming_ivr(
     db: AsyncSession = Depends(get_db),
 ):
     """Simulate an incoming IVR phone call creating a case.
-    
+
     In a real system, this would be a webhook from Exotel/Twilio,
     guarded by provider authentication.
     """
@@ -53,7 +51,7 @@ async def simulate_incoming_ivr(
     # 1. Lookup or create farmer by phone
     result = await db.execute(select(Farmer).where(Farmer.phone == payload.caller_phone))
     farmer = result.scalar_one_or_none()
-    
+
     if not farmer:
         farmer = Farmer(
             name=payload.farmer_name,
@@ -66,7 +64,7 @@ async def simulate_incoming_ivr(
     # 2. Lookup or create animal by ear tag
     result = await db.execute(select(Animal).where(Animal.ear_tag_id == payload.animal_id))
     animal = result.scalar_one_or_none()
-    
+
     if not animal:
         animal = Animal(
             farmer_id=farmer.id,
@@ -97,10 +95,10 @@ async def simulate_incoming_ivr(
         meta={"caller_phone": payload.caller_phone, "language": payload.language}
     )
     db.add(audit)
-    
+
     # 5. Commit and publish events
     await db.commit()
-    
+
     # Publish IVR_RECEIVED (could be useful for a specific UI panel)
     await event_bus.publish(
         event_type="IVR_RECEIVED",

@@ -93,7 +93,7 @@ def _farmer_to_list_out(farmer: Farmer) -> FarmerListOut:
 async def create_farmer(
     payload: FarmerCreate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),  # any authenticated user
+    current_user: User = Depends(get_current_user),  # any authenticated user
 ) -> FarmerOut:
     """Register a new farmer.
 
@@ -120,7 +120,7 @@ async def create_farmer(
 
     from app.models.audit_log import AuditLog
     from app.services.event_bus import event_bus
-    
+
     audit_log = AuditLog(
         actor_user_id=current_user.id,
         action="FARMER_CREATED",

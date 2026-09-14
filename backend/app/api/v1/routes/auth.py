@@ -16,7 +16,6 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.services.event_bus import event_bus
 from app.db.base import get_db
 from app.models.audit_log import AuditLog
 from app.models.user import User, UserRole
@@ -28,6 +27,7 @@ from app.schemas.auth import (
     TokenResponse,
     UserOut,
 )
+from app.services.event_bus import event_bus
 
 logger = logging.getLogger("pashumauli.auth")
 settings = get_settings()
@@ -119,7 +119,7 @@ async def register(
             entity_id=new_user.id,
             metadata={"role": new_user.role, "phone_suffix": new_user.phone[-4:]},
         )
-        
+
     await db.commit()
 
     logger.info("user_registered", extra={"user_id": str(new_user.id), "role": new_user.role})

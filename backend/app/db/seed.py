@@ -1,11 +1,13 @@
 """Database seed script for PashuMauli demo environment."""
 import asyncio
 import logging
+
 from sqlalchemy import select
-from app.db.base import AsyncSessionLocal
-from app.models.user import User, UserRole
-from app.models.health_case import HealthCase
+
 from app.core.security import hash_password
+from app.db.base import AsyncSessionLocal
+from app.models.health_case import HealthCase
+from app.models.user import User, UserRole
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("pashumauli.seed")

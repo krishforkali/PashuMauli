@@ -1,10 +1,9 @@
 """WebSocket router for real-time dashboard events."""
 import asyncio
-import json
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
 from jose import JWTError
 
 from app.core.security import decode_token
@@ -81,7 +80,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(...)):
     try:
         while True:
             # Keep connection open, client might send pings, we ignore them
-            data = await websocket.receive_text()
+            _ = await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         logger.info("websocket_disconnected", extra={"user_id": payload.get("sub")})

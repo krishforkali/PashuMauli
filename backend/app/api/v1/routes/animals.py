@@ -72,7 +72,7 @@ def _to_out(animal: Animal) -> AnimalOut:
 async def create_animal(
     payload: AnimalCreate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> AnimalOut:
     """Register a new animal. ear_tag_id must be unique (409 if duplicate)."""
     # Verify farmer exists
@@ -107,7 +107,7 @@ async def create_animal(
 
     from app.models.audit_log import AuditLog
     from app.services.event_bus import event_bus
-    
+
     audit_log = AuditLog(
         actor_user_id=current_user.id,
         action="ANIMAL_CREATED",
@@ -225,7 +225,7 @@ async def update_animal(
     try:
         for field, value in update_data.items():
             setattr(animal, field, value)
-            
+
         from app.models.audit_log import AuditLog
         from app.services.event_bus import event_bus
         audit_log = AuditLog(
@@ -243,7 +243,7 @@ async def update_animal(
             status_code=status.HTTP_409_CONFLICT,
             detail={"error": {"code": "EAR_TAG_TAKEN", "message": "ear_tag_id already exists.", "details": {}}},
         )
-        
+
     await event_bus.publish(
         event_type="ANIMAL_UPDATED",
         payload=_to_out(animal).model_dump(mode="json"),

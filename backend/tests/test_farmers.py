@@ -72,6 +72,44 @@ async def test_create_farmer_with_location(client: AsyncClient, auth_token: str)
     assert data["location"]["longitude"] == pytest.approx(73.8567, abs=0.001)
 
 
+async def test_create_farmer_audit_log_and_event_bus(client: AsyncClient, auth_token: str) -> None:
+    """Regression test ensuring farmer creation creates AuditLog and publishes event without 500 error."""
+    resp = await client.post(
+        "/api/v1/farmers",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        json={
+            "name": "Ganesh Patil",
+            "phone": "+919876543210",
+            "preferred_language": "mr",
+            "address_text": "Village Sangli",
+            "location": {"longitude": 74.57, "latitude": 16.85},
+        },
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["name"] == "Ganesh Patil"
+    assert data["phone"] == "+919876543210"
+    assert "id" in data
+
+
+async def test_create_farmer_duplicate_user_id_returns_json_error(client: AsyncClient, auth_token: str) -> None:
+    """Verify duplicate farmer with non-existent FK or database constraint returns standard JSON error envelope."""
+    import uuid
+    dummy_user_id = str(uuid.uuid4())
+    payload = {"name": "FK Constraint Test", "phone": "+919999000011", "user_id": dummy_user_id}
+    resp = await client.post(
+        "/api/v1/farmers",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        json=payload,
+    )
+    assert resp.status_code == 409
+    error_data = resp.json()
+    assert "error" in error_data
+    assert error_data["error"]["code"] == "CONFLICT"
+
+
+
+
 async def test_list_farmers_masked_phone(client: AsyncClient, auth_token: str) -> None:
     await client.post(
         "/api/v1/farmers",

@@ -1,9 +1,6 @@
-import asyncio
 import logging
-from typing import List
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
-from jose import jwt, JWTError
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.core.config import get_settings
 from app.services.event_bus import event_bus
@@ -16,7 +13,7 @@ settings = get_settings()
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: List[WebSocket] = []
+        self.active_connections: list[WebSocket] = []
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -37,7 +34,7 @@ class ConnectionManager:
             except Exception as e:
                 logger.warning(f"Error sending message to client: {e}")
                 disconnected.append(connection)
-                
+
         for connection in disconnected:
             self.disconnect(connection)
 

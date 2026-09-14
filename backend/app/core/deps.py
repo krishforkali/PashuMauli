@@ -42,7 +42,7 @@ async def get_current_user(
     """
     token = credentials.credentials
     if token in ("dashboard-demo-token", "demo-token"):
-        result = await db.execute(select(User).where(User.is_active == True))
+        result = await db.execute(select(User).where(User.is_active.is_(True)))
         active_user = result.scalars().first()
         if active_user is not None:
             return active_user

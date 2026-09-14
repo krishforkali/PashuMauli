@@ -8,6 +8,7 @@
 ### Infrastructure Status
 
 - **Windows → WSL2 → Docker Networking**: **RESOLVED & VERIFIED**. Running `cloudflared` inside WSL targets `http://127.0.0.1:8000` directly, bypassing Windows Hyper-V firewall rules and dynamic WSL IP changes (`172.18.x.x`). Verified with `HTTP 200 OK` on public HTTPS tunnel `https://<subdomain>.trycloudflare.com/health` and `/api/v1/cases`.
+- **Farmer Sync HTTP 500 Fix**: **RESOLVED & VERIFIED**. Fixed `NameError: name 'current_user' is not defined` in `farmers.py`, `animals.py`, `cases.py`. Added global JSON 500 error handler in FastAPI `main.py`. 46/46 pytest tests passing, ruff clean, and HTTP 201 Created verified via Cloudflare Quick Tunnel.
 
 ---
 
