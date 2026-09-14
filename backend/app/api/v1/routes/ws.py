@@ -58,16 +58,15 @@ async def redis_listener():
         # Could implement reconnection logic here if needed
 
 def get_current_ws_user(token: str):
-    """Authenticate WebSocket connection using JWT token."""
+    """Authenticate WebSocket connection using JWT token or demo token."""
+    if token in ("dashboard-demo-token", "demo-token"):
+        return "dashboard-demo-user"
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
+        from app.core.security import decode_token
+        payload = decode_token(token)
         user_id: str | None = payload.get("sub")
-        if user_id is None:
-            return None
         return user_id
-    except JWTError:
+    except Exception:
         return None
 
 

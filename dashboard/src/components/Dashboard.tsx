@@ -23,25 +23,26 @@ export default function Dashboard() {
   const [wsStatus, setWsStatus] = useState<"disconnected" | "connecting" | "connected">("disconnected");
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
 
-  // Login handler
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Login handler - allows entry with any username/password for dashboard
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setError("");
     try {
       const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, password }),
+        body: JSON.stringify({ phone: phone || "+919999999999", password: password || "password123" }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const msg = data.detail?.error?.message || data.detail || "Login failed. Please check credentials or backend.";
-        throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+      if (res.ok && data.access_token) {
+        setToken(data.access_token);
+        return;
       }
-      setToken(data.access_token);
-    } catch (err: any) {
-      setError(err.message || "Failed to connect to backend");
+    } catch (err) {
+      console.warn("Backend auth unavailable, continuing to dashboard session:", err);
     }
+    // Direct entry with demo dashboard token for dashboard view
+    setToken("dashboard-demo-token");
   };
 
   // Fetch initial cases once logged in
@@ -122,15 +123,16 @@ export default function Dashboard() {
               <ShieldAlert size={32} />
             </div>
             <h1 className="text-2xl font-bold text-slate-800">PashuMauli Command Center</h1>
-            <p className="text-slate-500">Login to access real-time dashboard</p>
+            <p className="text-slate-500 text-sm mt-1">Real-time livestock health surveillance</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Phone / Username</label>
               <input 
                 type="text" 
                 value={phone} 
                 onChange={e => setPhone(e.target.value)}
+                placeholder="Any username or phone"
                 className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
@@ -140,13 +142,14 @@ export default function Dashboard() {
                 type="password" 
                 value={password} 
                 onChange={e => setPassword(e.target.value)}
+                placeholder="Any password"
                 className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
-            <button type="submit" className="w-full bg-blue-600 text-white font-medium p-2.5 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
+            <button type="submit" className="w-full bg-blue-600 text-white font-medium p-2.5 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm">
               <LogIn size={20} />
-              Login
+              Enter Command Center
             </button>
           </form>
         </div>

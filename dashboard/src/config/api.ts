@@ -1,6 +1,6 @@
 export const getApiConfig = () => {
-  // Use NEXT_PUBLIC_API_BASE_URL if provided, else fallback to empty string (which uses next.config.js rewrite for local dev)
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  // Use NEXT_PUBLIC_API_BASE_URL if provided, else fallback to FastAPI backend at http://localhost:8000
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   
   let wsBase = process.env.NEXT_PUBLIC_WS_BASE_URL || "";
   if (!wsBase) {
