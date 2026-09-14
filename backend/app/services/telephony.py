@@ -4,6 +4,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
+from typing import Any, cast
 
 logger = logging.getLogger("pashumauli.telephony")
 
@@ -246,3 +247,92 @@ class DemoTelephonyProvider:
 
 # Global Telephony Provider Singleton
 telephony_provider = DemoTelephonyProvider()
+
+
+def normalize_exotel_digits(digits: Any) -> str:
+    """Normalize raw Exotel digits parameter (handling quotes, hashes, spaces)."""
+    if digits is None:
+        return ""
+    val = str(digits).strip()
+    val = val.strip('"\'').strip('#').strip()
+    return val
+
+
+class ExotelSessionStore:
+    """Redis-backed session store for Exotel IVR calls using CallSid key with in-memory fallback."""
+
+    SESSION_TTL_SECONDS = 1800  # 30 minutes
+    _in_memory_sessions: dict[str, dict[str, Any]] = {}
+    _in_memory_cases: dict[str, str] = {}
+
+    @staticmethod
+    def _make_key(call_sid: str) -> str:
+        return f"pashumauli:ivr:session:{call_sid}"
+
+    @staticmethod
+    def _make_case_key(call_sid: str) -> str:
+        return f"ivr:{call_sid}:case"
+
+    @classmethod
+    async def get_session(cls, redis: Any, call_sid: str) -> dict[str, Any] | None:
+        """Fetch session data dict from Redis or in-memory store."""
+        import json
+
+        if redis is None:
+            return cls._in_memory_sessions.get(call_sid)
+        try:
+            key = cls._make_key(call_sid)
+            raw_data = await redis.get(key)
+            if not raw_data:
+                return cls._in_memory_sessions.get(call_sid)
+            return cast(dict[str, Any], json.loads(raw_data))
+        except Exception as e:
+            logger.error(f"Failed to fetch Exotel session from Redis for {call_sid}: {e}")
+            return cls._in_memory_sessions.get(call_sid)
+
+    @classmethod
+    async def save_session(cls, redis: Any, session_data: dict[str, Any]) -> None:
+        """Persist session data dict into Redis or in-memory store."""
+        import json
+
+        if not session_data.get("call_sid"):
+            return
+        call_sid = session_data["call_sid"]
+        session_data["updated_at"] = datetime.now(UTC).isoformat()
+        cls._in_memory_sessions[call_sid] = session_data
+
+        if redis is not None:
+            try:
+                key = cls._make_key(call_sid)
+                payload_str = json.dumps(session_data)
+                await redis.setex(key, cls.SESSION_TTL_SECONDS, payload_str)
+            except Exception as e:
+                logger.error(f"Failed to save Exotel session to Redis for {call_sid}: {e}")
+
+    @classmethod
+    async def get_created_case_id(cls, redis: Any, call_sid: str) -> str | None:
+        """Check deterministic idempotency key for created case ID."""
+        if redis is None:
+            return cls._in_memory_cases.get(call_sid)
+        try:
+            key = cls._make_case_key(call_sid)
+            val = await redis.get(key)
+            if val:
+                return cast(str, val)
+            return cls._in_memory_cases.get(call_sid)
+        except Exception as e:
+            logger.error(f"Failed to get case_id from Redis for {call_sid}: {e}")
+            return cls._in_memory_cases.get(call_sid)
+
+    @classmethod
+    async def set_created_case_id(cls, redis: Any, call_sid: str, case_id: str) -> None:
+        """Set deterministic idempotency key for created case ID."""
+        cls._in_memory_cases[call_sid] = case_id
+        if redis is not None:
+            try:
+                key = cls._make_case_key(call_sid)
+                await redis.setex(key, cls.SESSION_TTL_SECONDS, case_id)
+            except Exception as e:
+                logger.error(f"Failed to set case_id in Redis for {call_sid}: {e}")
+
+

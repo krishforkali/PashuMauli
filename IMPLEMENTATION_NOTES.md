@@ -7,6 +7,22 @@ phase begins.
 
 ---
 
+## IN-10 Exotel IVR Webhook Adapter Implementation
+
+**Source:** Exotel Passthru Integration Task (Phase 8B).  
+**Finding:** Exotel Passthru uses HTTP GET requests with query parameters (`CallSid`, `stage`, `digits`, `CallFrom`/`From`, `To`, `CurrentTime`). Exotel determines branching based on HTTP status codes (HTTP 200 for success/valid input, non-200 like 400/422/404 for invalid input or retries).  
+**Implementation Decision:**  
+1. **Endpoint**: Created dedicated endpoint `GET /api/v1/ivr/exotel/passthru`.  
+2. **Session Storage**: Implemented `ExotelSessionStore` targeting Redis key `pashumauli:ivr:session:{CallSid}` with 30-minute TTL and an in-memory dictionary fallback when Redis is unavailable during testing or offline execution.  
+3. **Digit Normalization**: Created `normalize_exotel_digits` helper safely handling quotes, hashes, and whitespace (e.g. `\"1\"` -> `"1"`).  
+4. **Stage Machine**: Supported 9 stages: `language`, `farmer_id`, `animal_id`, `symptom_1`..`symptom_5`, `confirmation`.  
+5. **Idempotency**: Checked deterministic Redis key `ivr:{CallSid}:case` before creating `HealthCase` to ensure retried confirmation calls yield identical responses without duplicate case records or duplicate `CASE_CREATED` events.  
+6. **Transaction Order**: Strict DB mutation → AuditLog → `db.commit()` → Redis `event_bus.publish()` → HTTP 200 response sequence.  
+7. **Security**: Added optional `EXOTEL_WEBHOOK_SHARED_SECRET` query parameter verification; documented trial mode limitations in `docs/EXOTEL_IVR_SETUP.md`.  
+**Status:** RESOLVED — 30 unit/integration tests passing in `tests/test_exotel_ivr.py` (79 total backend tests passing). Ruff and Mypy clean. Verified locally and via Cloudflare Quick Tunnel.
+
+---
+
 ## IN-08 Phase 5 model artifact and CPH2213 accelerator
 
 **Source:** Phase 5 implementation request.

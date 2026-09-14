@@ -37,6 +37,8 @@ class Settings(BaseSettings):
 
     # Telephony & Voice
     TELEPHONY_PROVIDER: str = "mock"
+    EXOTEL_ENABLED: bool = True
+    EXOTEL_WEBHOOK_SHARED_SECRET: str = ""
     EXOTEL_API_KEY: str = ""
     EXOTEL_API_TOKEN: str = ""
     EXOTEL_VIRTUAL_NUMBER: str = ""

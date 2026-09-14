@@ -28,6 +28,7 @@ Phases 6, 7, and 8 implementation is **IN PROGRESS**. Building the Next.js Dashb
 | 7A | Redis Pub/Sub Event Bus | ✅ COMPLETE |
 | 7B | FastAPI WebSocket Manager & Auth | ✅ COMPLETE |
 | 8A | Demo IVR Route & Integration (Version-A Gather → Passthru) | ✅ COMPLETE |
+| 8B | Exotel Webhook Adapter (`GET /api/v1/ivr/exotel/passthru`) | ✅ COMPLETE |
 
 ---
 
