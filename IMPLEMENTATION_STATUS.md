@@ -1,30 +1,26 @@
 # PashuMauli — Implementation Status
 
-**Last updated:** Phase 5 — AI / Risk / Advisory — Network fix + Phase 5 implementation complete  
+**Last updated:** Phase 6, 7, 8 — Dashboard, WebSockets, IVR (In Progress)  
 **Updated by:** Antigravity agent
 
 ---
 
 ## Current Phase
 
-**Phase 5 — AI / Risk / Advisory (In Progress)**
+**Phases 6, 7, 8 — Dashboard, WebSockets, IVR (In Progress)**
 
-Phase 5 implementation is **IN PROGRESS**. Core components complete: LiteRT-LM Gemma 3 1B integration (CPU backend), deterministic risk engine, safety validator, advisory screen with LLM + static advisories, AI scan/result screens. Network error root cause identified and fixed (localhost → 127.0.0.1 for Android 13 ADB reverse compatibility). 99/99 automated tests passing, 0 `flutter analyze` issues.
+Phases 6, 7, and 8 implementation is **IN PROGRESS**. Building the Next.js Dashboard, the Redis Pub/Sub Event Bus, FastAPI WebSocket endpoints, and the Demo IVR entrypoint.
 
-### Phase 5 Checklist
+### Phase 6/7/8 Checklist
 
 | Sub-phase | Component | Status |
 |---|---|---|
-| 5A | Network fix: localhost → 127.0.0.1 (ADB reverse IPv4) | ✅ DONE |
-| 5B | LiteRT-LM Gemma 3 1B, CPU backend, MainActivity bridge | ✅ DONE |
-| 5C | Vision: TFLiteAdapter + StubMLAdapter (model not installed) | ✅ DONE |
-| 5D | Risk Engine: deterministic, all risk levels, escalation | ✅ DONE |
-| 5E | Safety Validator: output guardrails, fallback | ✅ DONE |
-| 5F | AI Scan screen: Phase 5 implementation with risk engine | ✅ DONE |
-| 5G | AI Result screen: risk display, escalation, disclaimers | ✅ DONE |
-| 5H | Advisory screen: LLM + static advisories + model status | ✅ DONE |
-| 5I | Tests: 99/99 pass (added 33 new Phase 5 tests) | ✅ DONE |
-| 5J | On-device validation: model push pending | ⏳ PENDING (model file required) |
+| 6A | Next.js Dashboard App scaffolded | 🔄 IN PROGRESS |
+| 6B | Live Metrics & Activity Pages | ⏳ PENDING |
+| 6C | Map Component (Leaflet) | ⏳ PENDING |
+| 7A | Redis Pub/Sub Event Bus | ⏳ PENDING |
+| 7B | FastAPI WebSocket Manager & Auth | ⏳ PENDING |
+| 8A | Demo IVR Route & Integration | ⏳ PENDING |
 
 ---
 
@@ -37,7 +33,10 @@ Phase 5 implementation is **IN PROGRESS**. Core components complete: LiteRT-LM G
 | 2 | Auth, users, farmers, animals, cases | Gate 2 verification: 44/44 tests pass, ruff clean, CRUD + idempotency + RBAC | ✅ COMPLETE |
 | 3 | Mobile foundation | Gate 3 verification: 56/56 tests pass, `flutter analyze` 0 issues, 17 screens, SQLite persistence, Physical Android Device (CPH2213) live backend integration | ✅ COMPLETE & PASSED |
 | 4 | Offline sync engine | Gate 4 verification: 66/66 tests pass, `flutter analyze` 0 issues, atomic transactions, FIFO replay, idempotency, retry/backoff, token refresh, physical device CPH2213 offline->online sync verified into PostgreSQL | ✅ COMPLETE & PASSED |
-| 5 | AI / risk / advisory | Network fix, risk engine, safety validator, advisory LLM screen, 99/99 tests, 0 analyze issues | 🔄 IN PROGRESS |
+| 5 | AI / risk / advisory | Network fix, risk engine, safety validator, advisory LLM screen, 99/99 tests, 0 analyze issues | ✅ COMPLETE |
+| 6 | Dashboard + GIS | Next.js Dashboard | 🔄 IN PROGRESS |
+| 7 | WebSockets | Redis Pub/Sub Event Bus | 🔄 IN PROGRESS |
+| 8 | IVR | Demo IVR Route | 🔄 IN PROGRESS |
 
 ---
 
@@ -45,10 +44,6 @@ Phase 5 implementation is **IN PROGRESS**. Core components complete: LiteRT-LM G
 
 | Phase | Name | Depends on |
 |---|---|---|
-| 5 | AI / risk / advisory | Phase 2 + 3 + 4 ✅ |
-| 6 | Dashboard + GIS | Phase 2 |
-| 7 | WebSockets | Phase 2 + 6 |
-| 8 | IVR | Phase 2 + 7 |
 | 9 | Emergency broadcast | Phase 2 + 7 + 8 |
 | 10 | Lab / vaccination / analytics | Phase 2 |
 | 11 | Integration hardening | Phases 1–10 |

@@ -16,6 +16,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+from app.services.event_bus import event_bus
 from app.db.base import get_db
 from app.models.audit_log import AuditLog
 from app.models.user import User, UserRole
@@ -112,8 +113,15 @@ async def register(
             entity_id=new_user.id,
             metadata={"role": new_user.role, "phone_suffix": new_user.phone[-4:]},
         )
+        
+    await db.commit()
 
     logger.info("user_registered", extra={"user_id": str(new_user.id), "role": new_user.role})
+    await event_bus.publish(
+        event_type="USER_REGISTERED",
+        payload=UserOut.model_validate(new_user).model_dump(mode="json"),
+        source="SYSTEM"
+    )
     return UserOut.model_validate(new_user)
 
 
@@ -149,8 +157,15 @@ async def login(
         entity_id=user.id,
         metadata={"role": user.role},
     )
+    await db.commit()
 
     logger.info("user_login", extra={"user_id": str(user.id), "role": user.role})
+    await event_bus.publish(
+        event_type="USER_LOGIN",
+        payload={"user_id": str(user.id), "role": user.role},
+        actor={"user_id": str(user.id), "role": user.role},
+        source="SYSTEM"
+    )
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,

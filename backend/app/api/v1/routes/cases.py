@@ -15,6 +15,7 @@ from app.core.deps import get_current_user
 from app.db.base import get_db
 from app.models.health_case import AIResult, HealthCase
 from app.models.user import User
+from app.services.event_bus import event_bus
 from app.schemas.farmer import LocationIn
 from app.schemas.health_case import (
     VALID_SOURCES,
@@ -134,8 +135,16 @@ async def create_case(
             detail={"error": {"code": "CONFLICT", "message": "Conflict on case creation.", "details": {}}},
         )
 
-    # Phase 7 stub: HEALTH_CASE_CREATED WebSocket event would be emitted here.
+    # Phase 7: Explicit commit before publishing event
+    await db.commit()
+
     logger.info("health_case_created", extra={"case_id": str(case.id), "source": case.source})
+    await event_bus.publish(
+        event_type="CASE_CREATED",
+        payload=_to_out(case).model_dump(mode="json"),
+        actor={"user_id": str(current_user.id), "role": current_user.role},
+        source=payload.source
+    )
     return _to_out(case)
 
 
@@ -241,7 +250,14 @@ async def patch_case(
     for field, value in update_data.items():
         setattr(case, field, value)
 
-    await db.flush()
+    await db.commit()
+    
+    await event_bus.publish(
+        event_type="CASE_UPDATED",
+        payload=_to_out(case).model_dump(mode="json"),
+        actor={"user_id": str(current_user.id), "role": current_user.role},
+        source="DASHBOARD"  # Assuming patch comes from dashboard in this MVP
+    )
     return _to_out(case)
 
 
@@ -292,9 +308,20 @@ async def attach_ai_result(
     if payload.confidence is not None:
         case.confidence = payload.confidence
 
-    await db.flush()
+    # Phase 5 stub: risk engine call
+    await db.commit()
+    
+    await event_bus.publish(
+        event_type="AI_RESULT_CREATED",
+        payload={
+            "case_id": str(cid),
+            "model_version": payload.model_version,
+            "top_prediction": payload.top_prediction,
+        },
+        actor={"user_id": str(current_user.id), "role": current_user.role},
+        source="SYSTEM"
+    )
 
-    # Phase 5 stub: risk engine call and AI_RESULT_AVAILABLE WS event go here.
     logger.info(
         "ai_result_attached",
         extra={"case_id": case_id, "model": payload.model_name, "version": payload.model_version},

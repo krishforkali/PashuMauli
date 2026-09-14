@@ -14,9 +14,10 @@
        |     |        \
        v     v         v
  PostgreSQL PostGIS   Dashboard
-       |
-      Redis
-       |
+       |               ^
+      Redis (Pub/Sub Event Bus)
+       |               |
+       +---------------+
        +---- SMS Provider
        +---- Telephony Provider
        +---- FCM

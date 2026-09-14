@@ -325,6 +325,15 @@ mobile); switch to signed-URL in a later phase if performance requires.
 
 ---
 
-*Last updated: Phase 0 — repository inspection*  
+## IN-19 Dashboard, WebSockets, and IVR Event Architecture
+
+**Source:** Phase 6/7/8 Implementation Plan.
+**Issue:** The project requires a real-time event distribution layer to bridge REST operations (from mobile and IVR) to the dashboard. 
+**Decision:** We are using **Redis Pub/Sub** as the event bus layer. The backend API routes will publish events (`CASE_CREATED`, `IVR_RECEIVED`) to Redis *after* DB transactions commit. A dedicated WebSocket manager in FastAPI will subscribe to these Redis channels and broadcast to connected Next.js dashboard clients.
+**Status:** CLOSED (Architecture finalized in Phase 6/7/8 plan).
+
+---
+
+*Last updated: Phase 6/7/8 — Dashboard and Real-time Architecture*  
 *No issues are silently resolved. Each OPEN item must be explicitly closed
 before the phase that depends on it begins.*

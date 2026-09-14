@@ -1,6 +1,9 @@
 """FastAPI application entry point for PashuMauli platform."""
 import logging
+import asyncio
+import logging
 import sys
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, Request, Response, status
@@ -13,9 +16,11 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import app.models as _models  # noqa: F401  Ensure all SQLAlchemy models are registered
 from app.api.v1.router import api_v1_router
+from app.api.v1.ws import redis_listener
 from app.core.config import get_settings
 from app.core.middleware import RequestIdAndLoggingMiddleware
 from app.db.base import async_engine
+from app.services.event_bus import event_bus
 
 settings = get_settings()
 
@@ -27,12 +32,23 @@ logging.basicConfig(
 )
 logger = logging.getLogger("pashumauli.main")
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await event_bus.connect()
+    task = asyncio.create_task(redis_listener())
+    yield
+    # Shutdown
+    task.cancel()
+    await event_bus.disconnect()
+
 app = FastAPI(
     title="PashuMauli Livestock Health Surveillance Platform",
     description="FastAPI Backend for PashuMauli (SIH Problem Statement 26128)",
     version="0.1.0",
     docs_url="/docs" if settings.APP_ENV != "production" else None,
     redoc_url="/redoc" if settings.APP_ENV != "production" else None,
+    lifespan=lifespan,
 )
 
 # Standardized Error Handlers (DOCS/API_CONTRACTS.md: {"error": {"code": "...", "message": "...", "details": {}}})
